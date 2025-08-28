@@ -6,455 +6,199 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <style>
-  /* =========
-   * THEME VARIABLES
-   * Default = NWS (Blue/Red). Other themes override on body.theme-*
-   * ========= */
   :root{
-    --navy:#003366; --royal:#1d4e89; --accent:#C4002F;
-    --panel:#ffffff; --bg:#f3f6fb; --text:#0f172a; --muted:#5a6b82;
-    --link:#1d4e89; --link-hover:#0c3a6b; --border:#d7dce6;
-    --shadow:0 6px 18px rgba(0, 0, 0, .06);
-    --chip-bg:#eaf1fb; --chip-text:#0c3a6b;
-    --bar-top:#114b8f; --bar-bot:#0f417b;
+    --navy:#003b6f; --red:#b30000; --white:#ffffff;
+    --bg:#f0f6ff; --text:#001f33;
+    --panel:#e4ecf7; --border:#ccd9eb;
+    --accent:#005bbb; --warn:#ff0000;
   }
+  *{box-sizing:border-box} html,body{margin:0;padding:0;font-family:"Trebuchet MS",Verdana,Arial,sans-serif;background:var(--bg);color:var(--text)}
+  header.mast{background:linear-gradient(to right,var(--navy),#005bbb);color:var(--white);padding:10px 16px;display:flex;justify-content:space-between;align-items:center}
+  .brand{display:flex;align-items:center;gap:12px;font-weight:800;text-transform:uppercase}
+  .logo{width:36px;height:36px;border-radius:6px;background:var(--red);display:grid;place-items:center;font-weight:900;color:#fff}
+  .controls{display:flex;align-items:center;gap:10px}
+  .btn,.select{padding:6px 10px;border:1px solid var(--border);border-radius:4px;background:#fff;cursor:pointer}
+  .stamp{font-size:0.85rem;opacity:0.8}
+  .wrap{display:flex}
+  nav.toc{width:240px;padding:12px;background:#eef4fc;border-right:2px solid var(--border)}
+  nav.toc h3{margin:12px 4px;font-size:.85rem;color:#005bbb;text-transform:uppercase}
+  nav.toc a{display:block;padding:6px 8px;margin:3px 0;color:#003b6f;text-decoration:none;border-radius:4px}
+  nav.toc a:hover{background:#dbe9ff}
+  main.content{flex:1;padding:16px}
+  section.card{background:#fff;border:2px solid var(--border);margin:14px 0;padding:12px;border-radius:6px}
+  .bar{font-weight:700;margin-bottom:8px;padding:6px 8px;background:#005bbb;color:#fff;border-radius:4px}
+  footer{margin-top:2rem;padding:1rem;font-size:.85rem;border-top:2px solid var(--border);color:#333;text-align:center}
+  footer ul{list-style:none;padding:0;margin:0;line-height:1.6}
+  a{color:var(--accent)} a:hover{text-decoration:underline}
 
-  /* NOAA Classic (requested) — deeper steel blues + light slate */
-  body.theme-noaa{
-    --navy:#002a4a; --royal:#315a87; --accent:#b6002a;
-    --panel:#ffffff; --bg:#eef3f9; --text:#0a1424; --muted:#52637a;
-    --link:#174a82; --link-hover:#0f345b; --border:#cfd8e6;
-    --shadow:0 6px 18px rgba(0, 24, 48, .10);
-    --chip-bg:#e6eef8; --chip-text:#0f345b;
-    --bar-top:#1a4f80; --bar-bot:#143e66;
+  /* Severe banner */
+  @keyframes flashBorder {
+    0%   { border-color:#ff0000; }
+    50%  { border-color:#ffb703; }
+    100% { border-color:#ff0000; }
   }
-
-  /* Retro 90s Weather Channel */
-  body.theme-retro{
-    --navy:#003b6f; --royal:#005a8d; --accent:#ffcc00;
-    --panel:#002242; --bg:linear-gradient(to bottom,#003b6f,#000b1f 70%);
-    --text:#eaf5ff; --muted:#c6d6ea; --link:#8bd0ff; --link-hover:#bdf0ff;
-    --border:#004c80; --shadow:0 10px 24px rgba(0,0,0,.35);
-    --chip-bg:#00325d; --chip-text:#eaf5ff;
-    --bar-top:#0077b8; --bar-bot:#005a8d;
-  }
-
-  /* Night Sky (dark) */
-  body.theme-night{
-    --navy:#0b1b36; --royal:#13315a; --accent:#e05e00;
-    --panel:#0f203f; --bg:#060e20;
-    --text:#e7f0ff; --muted:#9db2cc; --link:#8ec2ff; --link-hover:#cfe6ff;
-    --border:#224272; --shadow:0 12px 28px rgba(0,25,60,.45);
-    --chip-bg:#162e59; --chip-text:#e7f0ff;
-    --bar-top:#173a73; --bar-bot:#112c56;
-  }
-
-  /* Severe Mode (auto when alerts active, or manual) */
-  body.theme-severe{
-    --navy:#3b0a0a; --royal:#6b1111; --accent:#ffb703;
-    --panel:#fff9f2; --bg:#fff3e0;
-    --text:#1f0c00; --muted:#7a5130; --link:#9a2400; --link-hover:#6e1800;
-    --border:#ffc98a; --shadow:0 10px 24px rgba(120,50,0,.25);
-    --chip-bg:#ffe6c2; --chip-text:#7a3d00;
-    --bar-top:#a31200; --bar-bot:#7e0e00;
-  }
-
-  /* High Contrast */
-  body.theme-contrast{
-    --navy:#14213d; --royal:#1f2b50; --accent:#fca311;
-    --panel:#ffffff; --bg:#f8fafc;
-    --text:#0b0b0b; --muted:#525252; --link:#0b53bf; --link-hover:#073a86;
-    --border:#0b53bf33; --shadow:0 4px 16px rgba(0,0,0,.1);
-    --chip-bg:#0b53bf15; --chip-text:#0b53bf;
-    --bar-top:#0b53bf; --bar-bot:#0a48a5;
-  }
-
-  *{box-sizing:border-box}
-  html,body{height:100%}
-  body{
-    margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;
-    color:var(--text); background:var(--bg);
-    display:flex; flex-direction:column; min-height:100vh;
-  }
-
-  header.mast{
-    position:sticky; top:0; z-index:50;
-    background:linear-gradient(180deg, var(--navy), #022a56);
-    color:#fff; padding:12px 16px; border-bottom:4px solid var(--accent);
-  }
-  .mast-inner{display:flex; align-items:center; justify-content:space-between; gap:16px; max-width:1200px; margin:0 auto}
-  .brand{display:flex; align-items:center; gap:12px}
-  .logo{width:36px; height:36px; border-radius:6px; display:grid; place-items:center;
-        background:#0e3e78; color:#fff; font-weight:800; box-shadow:inset 0 0 0 2px rgba(255,255,255,.15)}
-  .brand h1{margin:0; font-size:1.05rem; letter-spacing:.2px; font-weight:800}
-  .brand small{opacity:.9; font-weight:600}
-
-  .controls{display:flex; align-items:center; gap:10px; color:#e6eef9; flex-wrap:wrap}
-  .stamp{font-size:.9rem; opacity:.9}
-  .btn{
-    background:#ffffff; color:var(--navy);
-    border:2px solid var(--accent); border-radius:999px; padding:6px 12px; font-weight:700;
-    cursor:pointer; transition:all .15s ease;
-  }
-  body.theme-retro .btn{ background:#0e78c2; color:#fff; border:2px solid #77c3ff; }
-  .btn:hover{background:#fff2f5; transform:translateY(-1px)}
-  .btn[disabled]{opacity:.55; cursor:not-allowed; transform:none}
-
-  .select{
-    appearance:none; -webkit-appearance:none;
-    padding:6px 28px 6px 10px; border:2px solid var(--accent); border-radius:999px;
-    background:#fff url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="14" viewBox="0 0 20 14"><path fill="%23C4002F" d="M5 5l5 5 5-5z"/></svg>') no-repeat right 8px center/16px;
-    color:var(--navy); font-weight:700; cursor:pointer;
-  }
-  body.theme-retro .select{
-    background:#0e78c2 url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="14" viewBox="0 0 20 14"><path fill="%23ffffff" d="M5 5l5 5 5-5z"/></svg>') no-repeat right 8px center/16px;
-    color:#fff; border-color:#77c3ff;
-  }
-
-  .toggle{display:inline-flex; align-items:center; gap:6px; font-weight:700}
-  .toggle input{width:42px; height:24px; appearance:none; -webkit-appearance:none; background:#ccc; border-radius:999px; position:relative; outline:none; cursor:pointer; border:2px solid var(--accent)}
-  .toggle input:checked{background:#ffd9a6}
-  .toggle input::after{content:""; position:absolute; top:2px; left:2px; width:18px; height:18px; background:#fff; border-radius:50%; transition:all .15s ease}
-  .toggle input:checked::after{left:20px}
-
-  .wrap{display:grid; grid-template-columns:260px 1fr; gap:18px; width:100%; max-width:1200px; margin:16px auto; padding:0 16px}
-  @media (max-width: 1100px){ .wrap{grid-template-columns:1fr} nav.toc{position:relative; top:auto} }
-
-  nav.toc{
-    position:sticky; top:76px; align-self:start;
-    background:#0e2f5a; color:#eaf1fb; border:1px solid #0b294f; border-radius:10px; padding:10px;
-    box-shadow:var(--shadow);
-  }
-  body.theme-retro nav.toc{ background:#001a33; border-color:#003b6f }
-  body.theme-night nav.toc{ background:#0b1f3e; border-color:#173a73 }
-  body.theme-contrast nav.toc{ background:#ffffff; border-color:#0b53bf33; color:#0b0b0b }
-
-  .toc h3{margin:12px 8px 6px; font-size:.8rem; text-transform:uppercase; letter-spacing:.06em; color:#d8e6f7}
-  body.theme-contrast .toc h3{ color:#0b53bf; }
-  .toc a{
-    display:block; margin:6px 6px; padding:8px 10px; border-radius:8px; text-decoration:none;
-    color:#eaf1fb; background:#153d70; border:1px solid #0f325d;
-  }
-  .toc a:hover{background:#1b4b8a}
-  body.theme-contrast .toc a{ color:#0b0b0b; background:#f7faff; border-color:#dfe8fb }
-  body.theme-contrast .toc a:hover{ background:#eaf2ff }
-  .toc .group{ margin:8px 0; border-left:3px solid var(--accent); padding-left:6px; }
-
-  main.content{min-width:0}
-  section.card{
-    background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:14px 16px; margin-bottom:14px;
-    box-shadow:var(--shadow);
-  }
-  .bar{
-    display:flex; align-items:center; gap:10px; margin:-14px -16px 12px; padding:10px 14px; border-radius:12px 12px 0 0;
-    background:linear-gradient(180deg, var(--bar-top), var(--bar-bot)); color:#fff; border-bottom:3px solid var(--accent); font-weight:800; letter-spacing:.2px;
-  }
-
-  table{width:100%; border-collapse:collapse; background:#fff; border:1px solid var(--border); border-radius:8px; overflow:hidden}
-  thead th{background:#0f417b; color:#fff; padding:10px; text-align:left; font-weight:800; font-size:.92rem}
-  body.theme-retro thead th{ background:#005a8d }
-  body.theme-night thead th{ background:#173a73 }
-  body.theme-contrast thead th{ background:#0b53bf }
-  td{padding:10px; border-top:1px solid var(--border)}
-  tr:nth-child(even) td{background:#f8fbff}
-  body.theme-retro tr:nth-child(even) td{ background:#001e38 }
-
-  .muted{color:var(--muted)}
-  a{color:var(--link); text-decoration:none}
-  a:hover{color:var(--link-hover); text-decoration:underline}
-
-  #quickHtml ul, #cardsHtml ul{display:grid; gap:8px; margin:0; padding-left:1.1rem}
-  #quickHtml li, #cardsHtml li{line-height:1.5}
-
   .banner{
-    display:none; margin:8px 0; padding:10px 12px; border-radius:8px; font-weight:800;
-    background:#fff3e0; color:#7a3d00; border:2px solid #ffb703;
+    display:none; margin:10px 0; padding:12px 16px; border-radius:10px;
+    font-weight:900; font-size:1.1rem; text-align:center;
+    background:#fff3e0; color:#7a3d00;
+    border:4px solid #ff0000;
+    position:relative;
   }
-  body.theme-severe .banner{ display:block; }
-
-  footer{
-    max-width:1200px; margin:24px auto 28px; padding:16px; color:var(--muted); font-size:.9rem;
-    border-top:3px solid var(--accent)
+  body.theme-severe .banner{
+    display:block;
+    animation: flashBorder 1.2s infinite;
   }
-  footer ul{list-style:none; padding:0; margin:8px 0 0; line-height:1.6}
+  .banner button.dismiss {
+    position:absolute; top:4px; right:8px;
+    border:none; background:transparent; font-size:1rem; font-weight:bold; cursor:pointer; color:#7a3d00;
+  }
 </style>
 </head>
 
 <body>
   <header class="mast">
-    <div class="mast-inner">
-      <div class="brand">
-        <div class="logo">WX</div>
-        <h1>Ripley Weather <small>• Local Outlook</small></h1>
-      </div>
-      <div class="controls">
-        <label class="toggle" title="Automatically switch to Severe Mode when alerts are active">
-          <input type="checkbox" id="autoSevere" checked>
-          Auto-Severe
-        </label>
-        <select id="themeSelect" class="select" title="Choose theme">
-          <option value="nws">NWS (Blue/Red)</option>
-          <option value="noaa">NOAA Classic</option>
-          <option value="retro">Retro 90s</option>
-          <option value="night">Night Sky</option>
-          <option value="severe">Severe Mode</option>
-          <option value="contrast">High Contrast</option>
-        </select>
-        <button id="refreshBtn" class="btn" title="Fetch fresh data">↻ Refresh</button>
-        <div id="runStamp" class="stamp">Loading…</div>
-      </div>
+    <div class="brand">
+      <div class="logo">WX</div>
+      <h1>Ripley Weather <small style="font-weight:400">• Local Outlook</small></h1>
+    </div>
+    <div class="controls">
+      <label><input type="checkbox" id="autoSevere" checked> Auto-Severe</label>
+      <select id="themeSelect" class="select">
+        <option value="nws">NWS (Blue/Red)</option>
+        <option value="noaa">NOAA Classic</option>
+        <option value="retro">Retro 90s</option>
+        <option value="night">Night Sky</option>
+        <option value="severe">Severe Mode</option>
+        <option value="contrast">High Contrast</option>
+      </select>
+      <button id="refreshBtn" class="btn">↻ Refresh</button>
+      <div id="runStamp" class="stamp">Loading…</div>
     </div>
   </header>
 
   <div class="wrap">
     <nav class="toc">
-      <div class="group">
-        <h3>Forecast</h3>
-        <a href="#quick">🔎 Quick Look</a>
-        <a href="#cards">📋 Key Cards</a>
-        <a href="#afd">📝 AFD (External)</a>
-        <a href="#seven">📆 7-Day</a>
-        <a href="#dayplanner">🕒 24-Hour Planner</a>
-      </div>
-      <div class="group">
-        <h3>Storm Outlook</h3>
-        <a href="#trends">📈 Trends & Diagnostics</a>
-        <a href="#severe">⛈ Severe Weather</a>
-        <a href="#radar">🛰 Radar & Satellite</a>
-        <a href="#lightning">⚡ Lightning</a>
-      </div>
-      <div class="group">
-        <h3>Impacts</h3>
-        <a href="#alerts">⚠️ Alerts</a>
-        <a href="#health">🌬 Air & Health</a>
-        <a href="#local">🏫 Local Impacts</a>
-        <a href="#rivers">🌊 Rivers & Streams</a>
-      </div>
-      <div class="group">
-        <h3>Climate & Sky</h3>
-        <a href="#records">📊 Climatology</a>
-        <a href="#astro">🌌 Astronomy</a>
-      </div>
-      <div class="group">
-        <h3>Summary</h3>
-        <a href="#bottom">✅ Bottom Line</a>
-      </div>
+      <h3>Forecast</h3>
+      <a href="#quick">🔎 Quick Look</a>
+      <a href="#cards">📋 Key Cards</a>
+      <a href="#afd">📝 AFD (External)</a>
+      <a href="#seven">📆 7-Day</a>
+      <a href="#dayplanner">🕒 24-Hour Planner</a>
+      <h3>Storm Outlook</h3>
+      <a href="#trends">📈 Trends & Diagnostics</a>
+      <a href="#severe">⛈ Severe Weather</a>
+      <a href="#radar">🛰 Radar & Satellite</a>
+      <a href="#lightning">⚡ Lightning</a>
+      <h3>Impacts</h3>
+      <a href="#alerts">⚠️ Alerts</a>
+      <a href="#health">🌬 Air & Health</a>
+      <a href="#local">🏫 Local Impacts</a>
+      <a href="#rivers">🌊 Rivers & Streams</a>
+      <h3>Climate & Sky</h3>
+      <a href="#records">📊 Climatology</a>
+      <a href="#astro">🌌 Astronomy</a>
+      <h3>Summary</h3>
+      <a href="#bottom">✅ Bottom Line</a>
     </nav>
 
     <main class="content">
-      <div id="sevBanner" class="banner">⚠️ Severe Mode is active due to current alerts for the area.</div>
+      <!-- 🚨 Severe banner -->
+      <div id="sevBanner" class="banner">
+        ⚠️ Severe Weather Currently in the Area ⚠️
+        <button class="dismiss" onclick="dismissBanner()">×</button>
+      </div>
 
-      <h2 id="runTitle" style="margin:0 0 8px; font-size:1.35rem; color:var(--navy)">Ripley Weather</h2>
+      <h2 id="runTitle">Ripley Weather</h2>
 
-      <section id="quick" class="card">
-        <div class="bar">🔎 Quick Look</div>
-        <div id="quickHtml">Loading…</div>
-      </section>
-
-      <section id="cards" class="card">
-        <div class="bar">📋 Key Items</div>
-        <div id="cardsHtml">Loading…</div>
-      </section>
-
-      <section id="afd" class="card">
-        <div class="bar">📝 Area Forecast Discussion</div>
-        <p class="muted">Full text hosted by weather.gov</p>
-        <p><a id="afdLink" href="#" target="_blank" rel="noopener">Open NWS ILN AFD</a></p>
-      </section>
-
-      <section id="seven" class="card">
-        <div class="bar">📆 7-Day Outlook</div>
-        <div id="sevenHtml">Loading…</div>
-      </section>
-
-      <section id="dayplanner" class="card">
-        <div class="bar">🕒 24-Hour Planner</div>
-        <div id="plannerHtml">Loading…</div>
-      </section>
-
-      <section id="trends" class="card">
-        <div class="bar">📈 Trends & Diagnostics</div>
-        <div id="trendsHtml">Loading…</div>
-      </section>
-
-      <section id="severe" class="card">
-        <div class="bar">⛈ Severe Weather Diagnostics</div>
-        <div id="severeHtml">Loading…</div>
-      </section>
-
-      <section id="radar" class="card">
-        <div class="bar">🛰 Radar & Satellite</div>
-        <div id="radarHtml">Loading…</div>
-      </section>
-
-      <section id="lightning" class="card">
-        <div class="bar">⚡ Lightning Summary</div>
-        <div id="lightningHtml">Loading…</div>
-      </section>
-
-      <section id="alerts" class="card">
-        <div class="bar">⚠️ Alerts & Hazards</div>
-        <div id="alertsHtml">Loading…</div>
-      </section>
-
-      <section id="health" class="card">
-        <div class="bar">🌬 Air & Health</div>
-        <div id="airHtml">Loading…</div>
-      </section>
-
-      <section id="local" class="card">
-        <div class="bar">🏫 Local Impacts</div>
-        <div id="localHtml">Loading…</div>
-      </section>
-
-      <section id="rivers" class="card">
-        <div class="bar">🌊 Rivers & Streams</div>
-        <div id="riversHtml">Loading…</div>
-      </section>
-
-      <section id="records" class="card">
-        <div class="bar">📊 Climatology & Records</div>
-        <div id="recordsHtml">Loading…</div>
-      </section>
-
-      <section id="astro" class="card">
-        <div class="bar">🌌 Astronomy & Skywatch</div>
-        <div id="astroHtml">Loading…</div>
-      </section>
-
-      <section id="bottom" class="card">
-        <div class="bar">✅ Bottom Line</div>
-        <div id="bottomHtml">Loading…</div>
-      </section>
+      <section id="quick" class="card"><div class="bar">🔎 Quick Look</div><div id="quickHtml">Loading…</div></section>
+      <section id="cards" class="card"><div class="bar">📋 Key Items</div><div id="cardsHtml">Loading…</div></section>
+      <section id="afd" class="card"><div class="bar">📝 Area Forecast Discussion</div><p><a id="afdLink" href="#" target="_blank">Open NWS ILN AFD</a></p></section>
+      <section id="seven" class="card"><div class="bar">📆 7-Day Outlook</div><div id="sevenHtml">Loading…</div></section>
+      <section id="dayplanner" class="card"><div class="bar">🕒 24-Hour Planner</div><div id="plannerHtml">Loading…</div></section>
+      <section id="trends" class="card"><div class="bar">📈 Trends & Diagnostics</div><div id="trendsHtml">Loading…</div></section>
+      <section id="severe" class="card"><div class="bar">⛈ Severe Weather Diagnostics</div><div id="severeHtml">Loading…</div></section>
+      <section id="radar" class="card"><div class="bar">🛰 Radar & Satellite</div><div id="radarHtml">Loading…</div></section>
+      <section id="lightning" class="card"><div class="bar">⚡ Lightning Summary</div><div id="lightningHtml">Loading…</div></section>
+      <section id="alerts" class="card"><div class="bar">⚠️ Alerts & Hazards</div><div id="alertsHtml">Loading…</div></section>
+      <section id="health" class="card"><div class="bar">🌬 Air & Health</div><div id="airHtml">Loading…</div></section>
+      <section id="local" class="card"><div class="bar">🏫 Local Impacts</div><div id="localHtml">Loading…</div></section>
+      <section id="rivers" class="card"><div class="bar">🌊 Rivers & Streams</div><div id="riversHtml">Loading…</div></section>
+      <section id="records" class="card"><div class="bar">📊 Climatology & Records</div><div id="recordsHtml">Loading…</div></section>
+      <section id="astro" class="card"><div class="bar">🌌 Astronomy & Skywatch</div><div id="astroHtml">Loading…</div></section>
+      <section id="bottom" class="card"><div class="bar">✅ Bottom Line</div><div id="bottomHtml">Loading…</div></section>
     </main>
   </div>
 
   <footer>
     <p><strong>Created by Matthew Carpenter</strong> —
-      <a href="mailto:matthew@carpsemail.com" style="color:var(--link); text-decoration:underline">
-        matthew@carpsemail.com
-      </a>
+      <a href="mailto:matthew@carpsemail.com">matthew@carpsemail.com</a>
     </p>
     <p><em>Data Sources:</em></p>
     <ul>
       <li>🌐 NOAA / NWS ILN — 7-Day Forecast, Alerts, AFD</li>
       <li>🌤️ Open-Meteo — Backup Forecast & Astronomy</li>
-      <li>🫧 AirNow — Current Air Quality Index</li>
       <li>🛰️ NWS / NOAA APIs — Radar, Satellite, Rivers & Climatology</li>
       <li>⚡ LightningMaps.org — Real-time Lightning</li>
       <li>🚀 NASA / Heavens Above — ISS & Astronomy Events</li>
+      <li>🌬 AirNow — AQI & Air Quality</li>
     </ul>
+    <p id="lastUpdated"></p>
   </footer>
 
-  <script>
-    const EXEC_URL = 'https://script.google.com/macros/s/AKfycbxEHXreFLXPTRzpnbU4Zzhz09iLXD9TyzxSyeTFfz6vzXLXzJdHcisLpHEHKH3U35K36w/exec';
+<script>
+  const EXEC_URL = 'https://script.google.com/macros/s/AKfycbxEHXreFLXPTRzpnbU4Zzhz09iLXD9TyzxSyeTFfz6vzXLXzJdHcisLpHEHKH3U35K36w/exec';
 
-    // Theme handling
-    const THEME_KEY = 'rw-theme';
-    const AUTO_SEV_KEY = 'rw-auto-severe';
-    const themeSelect = document.getElementById('themeSelect');
-    const autoSevereEl = document.getElementById('autoSevere');
-    const sevBanner = document.getElementById('sevBanner');
+  function dismissBanner(){
+    document.getElementById('sevBanner').style.display = 'none';
+    localStorage.setItem('rw-banner-dismissed','1');
+  }
 
-    function setThemeClass(theme){
-      document.body.classList.remove('theme-retro','theme-night','theme-contrast','theme-noaa','theme-severe');
-      if (theme === 'retro') document.body.classList.add('theme-retro');
-      else if (theme === 'night') document.body.classList.add('theme-night');
-      else if (theme === 'contrast') document.body.classList.add('theme-contrast');
-      else if (theme === 'noaa') document.body.classList.add('theme-noaa');
-      else if (theme === 'severe') document.body.classList.add('theme-severe');
-      // default (NWS) has no class
-    }
+  (function loadJSONP() {
+    const s = document.createElement('script');
+    const ts = Date.now();
+    s.src = `${EXEC_URL}?format=jsonp&callback=renderReport&t=${ts}`;
+    s.defer = true;
+    document.head.appendChild(s);
+  })();
 
-    function initTheme(){
-      const saved = localStorage.getItem(THEME_KEY) || 'nws';
-      const auto = (localStorage.getItem(AUTO_SEV_KEY) ?? '1') === '1';
-      themeSelect.value = saved;
-      autoSevereEl.checked = auto;
-      setThemeClass(saved);
-      themeSelect.addEventListener('change', () => {
-        const val = themeSelect.value;
-        localStorage.setItem(THEME_KEY, val);
-        setThemeClass(val);
-      });
-      autoSevereEl.addEventListener('change', () => {
-        localStorage.setItem(AUTO_SEV_KEY, autoSevereEl.checked ? '1' : '0');
-      });
-    }
+  function renderReport(report) {
+    document.title = report.meta.runTitle || 'Ripley Weather • Dashboard';
+    document.getElementById('runTitle').textContent = report.meta.runTitle || 'Ripley Weather';
+    document.getElementById('runStamp').textContent = `${report.meta.runTime} • #${report.meta.totalToday}`;
 
-    // JSONP loader
-    function removeOldJsonp_() {
-      document.querySelectorAll('script[data-jsonp="1"]').forEach(s => s.remove());
-    }
-    function loadJSONP(force = false) {
-      removeOldJsonp_();
-      const s = document.createElement('script');
-      s.setAttribute('data-jsonp','1');
-      const ts = Date.now();
-      s.src = `${EXEC_URL}?format=jsonp&callback=renderReport&force=${force?1:0}&_=${ts}`;
-      s.defer = true;
-      document.head.appendChild(s);
-    }
+    document.getElementById('quickHtml').innerHTML     = report.quick;
+    document.getElementById('cardsHtml').innerHTML     = report.cards;
+    document.getElementById('sevenHtml').innerHTML     = report.sevenDay;
+    document.getElementById('plannerHtml').innerHTML   = report.hourly;
+    document.getElementById('trendsHtml').innerHTML    = report.trends;
+    document.getElementById('severeHtml').innerHTML    = report.severe;
+    document.getElementById('radarHtml').innerHTML     = report.radar;
+    document.getElementById('lightningHtml').innerHTML = report.lightning;
+    document.getElementById('alertsHtml').innerHTML    = report.alerts;
+    document.getElementById('airHtml').innerHTML       = report.air;
+    document.getElementById('localHtml').innerHTML     = report.local;
+    document.getElementById('riversHtml').innerHTML    = report.rivers;
+    document.getElementById('recordsHtml').innerHTML   = report.records;
+    document.getElementById('astroHtml').innerHTML     = report.astro;
+    document.getElementById('bottomHtml').innerHTML    = report.bottom;
 
-    const btn = document.getElementById('refreshBtn');
-    btn.addEventListener('click', () => {
-      btn.disabled = true;
-      btn.textContent = 'Refreshing…';
-      loadJSONP(true);
-      setTimeout(()=>{btn.disabled=false;btn.textContent='↻ Refresh';}, 6000);
-    });
+    const afd = document.getElementById('afdLink');
+    if (afd && report.afdLink) afd.href = report.afdLink;
 
-    function renderReport(report) {
-      document.title = report.meta.runTitle || 'Ripley Weather • Dashboard';
-      document.getElementById('runTitle').textContent = report.meta.runTitle || 'Ripley Weather';
-      document.getElementById('runStamp').textContent = report.meta.runTime;
-
-      document.getElementById('quickHtml').innerHTML     = report.quick;
-      document.getElementById('cardsHtml').innerHTML     = report.cards;
-      document.getElementById('sevenHtml').innerHTML     = report.sevenDay;
-      document.getElementById('plannerHtml').innerHTML   = report.hourly;
-      document.getElementById('trendsHtml').innerHTML    = report.trends;
-      document.getElementById('severeHtml').innerHTML    = report.severe;
-      document.getElementById('radarHtml').innerHTML     = report.radar;
-      document.getElementById('lightningHtml').innerHTML = report.lightning;
-      document.getElementById('alertsHtml').innerHTML    = report.alerts;
-      document.getElementById('airHtml').innerHTML       = report.air;
-      document.getElementById('localHtml').innerHTML     = report.local;
-      document.getElementById('riversHtml').innerHTML    = report.rivers;
-      document.getElementById('recordsHtml').innerHTML   = report.records;
-      document.getElementById('astroHtml').innerHTML     = report.astro;
-      document.getElementById('bottomHtml').innerHTML    = report.bottom;
-
-      // AFD link
-      const afd = document.getElementById('afdLink');
-      if (afd && report.afdLink) afd.href = report.afdLink;
-
-      // Auto-Severe behavior
-      const auto = (localStorage.getItem(AUTO_SEV_KEY) ?? '1') === '1';
-      const currentTheme = themeSelect.value;
-      if (auto && report.meta && report.meta.severeActive) {
-        sevBanner.style.display = 'block';
-        if (currentTheme !== 'severe') {
-          themeSelect.value = 'severe';
-          setThemeClass('severe');
-        }
-      } else {
-        sevBanner.style.display = 'none';
-        // If we auto-switched earlier, revert to saved preference
-        if (currentTheme === 'severe' && auto) {
-          const saved = localStorage.getItem(THEME_KEY) || 'nws';
-          themeSelect.value = saved;
-          setThemeClass(saved);
-        }
+    // handle severe banner auto-show
+    const auto = (localStorage.getItem('rw-auto-severe') ?? '1') === '1';
+    if (auto && report.meta && report.meta.severeActive) {
+      if (localStorage.getItem('rw-banner-dismissed') !== '1') {
+        document.getElementById('sevBanner').style.display = 'block';
       }
-
-      btn.disabled = false;
-      btn.textContent = '↻ Refresh';
+    } else {
+      document.getElementById('sevBanner').style.display = 'none';
+      localStorage.removeItem('rw-banner-dismissed');
     }
 
-    // Init + first load
-    initTheme();
-    loadJSONP(false);
-  </script>
+    document.getElementById('lastUpdated').textContent =
+      `Last updated: ${report.meta.runTime} • Reports today: ${report.meta.totalToday}`;
+  }
+</script>
 </body>
 </html>
