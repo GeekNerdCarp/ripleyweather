@@ -4,21 +4,21 @@
 <meta charset="utf-8" />
 <title>Ripley Weather • Dashboard</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-
 <style>
   :root{
     --navy:#003b6f; --red:#b30000; --white:#ffffff;
     --bg:#f0f6ff; --text:#001f33;
     --panel:#e4ecf7; --border:#ccd9eb;
-    --accent:#005bbb; --warn:#ff0000;
+    --accent:#005bbb;
   }
-  *{box-sizing:border-box} html,body{margin:0;padding:0;font-family:"Trebuchet MS",Verdana,Arial,sans-serif;background:var(--bg);color:var(--text)}
-  header.mast{background:linear-gradient(to right,var(--navy),#005bbb);color:var(--white);padding:10px 16px;display:flex;justify-content:space-between;align-items:center}
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--text);font-family:"Trebuchet MS",Verdana,Arial,sans-serif}
+  header.mast{background:linear-gradient(to right,var(--navy),#005bbb);color:#fff;padding:10px 16px;display:flex;justify-content:space-between;align-items:center}
   .brand{display:flex;align-items:center;gap:12px;font-weight:800;text-transform:uppercase}
-  .logo{width:36px;height:36px;border-radius:6px;background:var(--red);display:grid;place-items:center;font-weight:900;color:#fff}
+  .logo{width:36px;height:36px;border-radius:6px;background:var(--red);display:grid;place-items:center;color:#fff;font-weight:900}
   .controls{display:flex;align-items:center;gap:10px}
   .btn,.select{padding:6px 10px;border:1px solid var(--border);border-radius:4px;background:#fff;cursor:pointer}
-  .stamp{font-size:0.85rem;opacity:0.8}
+  .stamp{font-size:.85rem;opacity:.85}
   .wrap{display:flex}
   nav.toc{width:240px;padding:12px;background:#eef4fc;border-right:2px solid var(--border)}
   nav.toc h3{margin:12px 4px;font-size:.85rem;color:#005bbb;text-transform:uppercase}
@@ -27,34 +27,16 @@
   main.content{flex:1;padding:16px}
   section.card{background:#fff;border:2px solid var(--border);margin:14px 0;padding:12px;border-radius:6px}
   .bar{font-weight:700;margin-bottom:8px;padding:6px 8px;background:#005bbb;color:#fff;border-radius:4px}
-  footer{margin-top:2rem;padding:1rem;font-size:.85rem;border-top:2px solid var(--border);color:#333;text-align:center}
+  footer{margin-top:2rem;padding:1rem;border-top:2px solid var(--border);font-size:.85rem;text-align:center;color:#333}
   footer ul{list-style:none;padding:0;margin:0;line-height:1.6}
-  a{color:var(--accent)} a:hover{text-decoration:underline}
-
-  /* Severe banner */
-  @keyframes flashBorder {
-    0%   { border-color:#ff0000; }
-    50%  { border-color:#ffb703; }
-    100% { border-color:#ff0000; }
-  }
-  .banner{
-    display:none; margin:10px 0; padding:12px 16px; border-radius:10px;
-    font-weight:900; font-size:1.1rem; text-align:center;
-    background:#fff3e0; color:#7a3d00;
-    border:4px solid #ff0000;
-    position:relative;
-  }
-  body.theme-severe .banner{
-    display:block;
-    animation: flashBorder 1.2s infinite;
-  }
-  .banner button.dismiss {
-    position:absolute; top:4px; right:8px;
-    border:none; background:transparent; font-size:1rem; font-weight:bold; cursor:pointer; color:#7a3d00;
-  }
+  a{color:var(--accent)}
+  /* Severe banner (unchanged) */
+  @keyframes flashBorder{0%{border-color:#ff0000}50%{border-color:#ffb703}100%{border-color:#ff0000}}
+  .banner{display:none;margin:10px 0;padding:12px 16px;border-radius:10px;font-weight:900;font-size:1.1rem;text-align:center;background:#fff3e0;color:#7a3d00;border:4px solid #ff0000;position:relative}
+  body.theme-severe .banner{display:block;animation:flashBorder 1.2s infinite}
+  .banner button.dismiss{position:absolute;top:4px;right:8px;border:none;background:transparent;font-size:1rem;font-weight:bold;cursor:pointer;color:#7a3d00}
 </style>
 </head>
-
 <body>
   <header class="mast">
     <div class="brand">
@@ -62,15 +44,6 @@
       <h1>Ripley Weather <small style="font-weight:400">• Local Outlook</small></h1>
     </div>
     <div class="controls">
-      <label><input type="checkbox" id="autoSevere" checked> Auto-Severe</label>
-      <select id="themeSelect" class="select">
-        <option value="nws">NWS (Blue/Red)</option>
-        <option value="noaa">NOAA Classic</option>
-        <option value="retro">Retro 90s</option>
-        <option value="night">Night Sky</option>
-        <option value="severe">Severe Mode</option>
-        <option value="contrast">High Contrast</option>
-      </select>
       <button id="refreshBtn" class="btn">↻ Refresh</button>
       <div id="runStamp" class="stamp">Loading…</div>
     </div>
@@ -81,7 +54,6 @@
       <h3>Forecast</h3>
       <a href="#quick">🔎 Quick Look</a>
       <a href="#cards">📋 Key Cards</a>
-      <a href="#afd">📝 AFD (External)</a>
       <a href="#seven">📆 7-Day</a>
       <a href="#dayplanner">🕒 24-Hour Planner</a>
       <h3>Storm Outlook</h3>
@@ -102,17 +74,12 @@
     </nav>
 
     <main class="content">
-      <!-- 🚨 Severe banner -->
-      <div id="sevBanner" class="banner">
-        ⚠️ Severe Weather Currently in the Area ⚠️
-        <button class="dismiss" onclick="dismissBanner()">×</button>
-      </div>
+      <div id="sevBanner" class="banner">⚠️ Severe Weather Currently in the Area ⚠️ <button class="dismiss" onclick="dismissBanner()">×</button></div>
 
       <h2 id="runTitle">Ripley Weather</h2>
 
       <section id="quick" class="card"><div class="bar">🔎 Quick Look</div><div id="quickHtml">Loading…</div></section>
       <section id="cards" class="card"><div class="bar">📋 Key Items</div><div id="cardsHtml">Loading…</div></section>
-      <section id="afd" class="card"><div class="bar">📝 Area Forecast Discussion</div><p><a id="afdLink" href="#" target="_blank">Open NWS ILN AFD</a></p></section>
       <section id="seven" class="card"><div class="bar">📆 7-Day Outlook</div><div id="sevenHtml">Loading…</div></section>
       <section id="dayplanner" class="card"><div class="bar">🕒 24-Hour Planner</div><div id="plannerHtml">Loading…</div></section>
       <section id="trends" class="card"><div class="bar">📈 Trends & Diagnostics</div><div id="trendsHtml">Loading…</div></section>
@@ -130,17 +97,14 @@
   </div>
 
   <footer>
-    <p><strong>Created by Matthew Carpenter</strong> —
-      <a href="mailto:matthew@carpsemail.com">matthew@carpsemail.com</a>
-    </p>
+    <p><strong>Created by Matthew Carpenter</strong> — <a href="mailto:matthew@carpsemail.com">matthew@carpsemail.com</a></p>
     <p><em>Data Sources:</em></p>
     <ul>
       <li>🌐 NOAA / NWS ILN — 7-Day Forecast, Alerts, AFD</li>
-      <li>🌤️ Open-Meteo — Backup Forecast & Astronomy</li>
-      <li>🛰️ NWS / NOAA APIs — Radar, Satellite, Rivers & Climatology</li>
+      <li>🌤️ Open-Meteo — Forecast & Astronomy</li>
+      <li>🛰️ NOAA/NWS — Radar, Satellite</li>
       <li>⚡ LightningMaps.org — Real-time Lightning</li>
-      <li>🚀 NASA / Heavens Above — ISS & Astronomy Events</li>
-      <li>🌬 AirNow — AQI & Air Quality</li>
+      <li>🌬 AirNow — AQI</li>
     </ul>
     <p id="lastUpdated"></p>
   </footer>
@@ -148,20 +112,24 @@
 <script>
   const EXEC_URL = 'https://script.google.com/macros/s/AKfycbxEHXreFLXPTRzpnbU4Zzhz09iLXD9TyzxSyeTFfz6vzXLXzJdHcisLpHEHKH3U35K36w/exec';
 
-  function dismissBanner(){
-    document.getElementById('sevBanner').style.display = 'none';
-    localStorage.setItem('rw-banner-dismissed','1');
-  }
-
-  (function loadJSONP() {
+  function loadJSONP() {
     const s = document.createElement('script');
-    const ts = Date.now();
-    s.src = `${EXEC_URL}?format=jsonp&callback=renderReport&t=${ts}`;
+    s.src = `${EXEC_URL}?format=jsonp&callback=renderReport&t=${Date.now()}`;
     s.defer = true;
     document.head.appendChild(s);
-  })();
+  }
+  document.getElementById('refreshBtn').addEventListener('click', ()=>{
+    // Clear previous JSONP tags to avoid piling up
+    [...document.querySelectorAll('script[src*="/exec?"]')].forEach(n=>n.remove());
+    loadJSONP();
+  });
+  function dismissBanner(){
+    document.getElementById('sevBanner').style.display='none';
+    localStorage.setItem('rw-banner-dismissed','1');
+  }
+  loadJSONP();
 
-  function renderReport(report) {
+  function renderReport(report){
     document.title = report.meta.runTitle || 'Ripley Weather • Dashboard';
     document.getElementById('runTitle').textContent = report.meta.runTitle || 'Ripley Weather';
     document.getElementById('runStamp').textContent = `${report.meta.runTime} • #${report.meta.totalToday}`;
@@ -182,22 +150,14 @@
     document.getElementById('astroHtml').innerHTML     = report.astro;
     document.getElementById('bottomHtml').innerHTML    = report.bottom;
 
-    const afd = document.getElementById('afdLink');
-    if (afd && report.afdLink) afd.href = report.afdLink;
-
-    // handle severe banner auto-show
-    const auto = (localStorage.getItem('rw-auto-severe') ?? '1') === '1';
-    if (auto && report.meta && report.meta.severeActive) {
-      if (localStorage.getItem('rw-banner-dismissed') !== '1') {
-        document.getElementById('sevBanner').style.display = 'block';
-      }
-    } else {
-      document.getElementById('sevBanner').style.display = 'none';
-      localStorage.removeItem('rw-banner-dismissed');
-    }
-
     document.getElementById('lastUpdated').textContent =
       `Last updated: ${report.meta.runTime} • Reports today: ${report.meta.totalToday}`;
+
+    // show banner if alerts present and not dismissed
+    const sevActive = !!report.meta.severeActive;
+    const dismissed = localStorage.getItem('rw-banner-dismissed') === '1';
+    document.getElementById('sevBanner').style.display =
+      (sevActive && !dismissed) ? 'block' : 'none';
   }
 </script>
 </body>
