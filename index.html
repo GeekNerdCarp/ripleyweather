@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
+<meta charset="utf-8" />
 <title>Ripley Weather • Dashboard</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <style>
   :root{
     --bg-top:#003b6f; --bg-bottom:#000b1f; --panel:#002242; --bevel:#005d99; --shadow:#001326;
@@ -14,21 +14,18 @@
   *{box-sizing:border-box} html,body{height:100%}
   body{margin:0;font-family:"Trebuchet MS",Verdana,Arial,sans-serif;color:var(--body);
        background:linear-gradient(to bottom,var(--bg-top),var(--bg-bottom) 70%);display:flex;flex-direction:column;min-height:100vh}
+
   header.mast{position:fixed;top:0;left:0;right:0;z-index:50;
     background:linear-gradient(to bottom,#005aa3,#003b6f);
     border-bottom:4px solid #012a4a;box-shadow:0 8px 0 var(--shadow);
-    padding:10px 16px;display:flex;align-items:center;gap:12px;justify-content:space-between}
-  .brand{display:flex;align-items:center;gap:10px;font-weight:800;text-transform:uppercase}
+    padding:10px 16px;display:flex;align-items:center;gap:16px;justify-content:space-between}
+  .brand{display:flex;align-items:center;gap:12px;font-weight:800;text-transform:uppercase}
   .logo{width:36px;height:36px;border-radius:6px;background:linear-gradient(135deg,#009ad6,#005aa3);
     box-shadow:inset 0 0 0 3px #013e6b,inset 0 0 10px rgba(255,255,255,.15);
     display:grid;place-items:center;color:#ffff9e}
-  .chips{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-  .chip{font-size:.8rem;padding:3px 8px;border-radius:999px;background:#004b7d;border:1px solid #007ac1;color:#cff0ff}
-  .chip.ok{background:#0d5f3e;border-color:#21a26d;color:#e7fff3}
-  .chip.warn{background:#6a3f00;border-color:#ffad33;color:#fff5e0}
-  .chip.err{background:#5a0a0a;border-color:#ff6b6b;color:#ffe6e6}
 
   .wrap{display:flex;gap:16px;width:100%;padding-top:68px;flex:1}
+
   nav.toc{width:260px;min-width:240px;position:sticky;top:74px;height:calc(100vh - 78px);overflow:auto;padding:10px 12px 18px;
     background:linear-gradient(to bottom,#012a4a,#001a33);border-right:4px solid #012a4a;box-shadow:inset -6px 0 0 var(--shadow)}
   .toc h3{margin:14px 8px 6px;font-size:.85rem;color:#cfeaff;letter-spacing:.08em;text-transform:uppercase;opacity:.9}
@@ -44,18 +41,20 @@
   .bar{margin:-12px -14px 12px;padding:8px 12px;background:linear-gradient(to bottom,#0077b8,#005a8d);color:var(--headline-text);
     border-bottom:3px solid #003a63;font-weight:800;text-transform:uppercase;letter-spacing:.03em;display:flex;align-items:center;gap:10px}
   .muted{color:var(--muted)} a{color:var(--link)} a:hover{color:var(--link-hover);text-decoration:underline}
+
   table{width:100%;border-collapse:collapse;background:#001e38;border:2px solid #004c80}
   thead th{background:#013e6b;color:#fffbd1;padding:9px 10px;text-transform:uppercase;letter-spacing:.03em;border-bottom:2px solid #00609e;font-size:.92rem}
   td{padding:9px 10px;border-bottom:1px solid #03365c}
   tr:nth-child(even) td{background:#002442}
+
+  .btn{background:#0e78c2;border:2px solid #77c3ff;color:#fff; padding:6px 10px;border-radius:999px;cursor:pointer}
+  .btn[disabled]{opacity:.6;cursor:not-allowed}
+
   @media(max-width:1100px){nav.toc{display:none}.wrap{padding-top:72px}.bar{font-size:.95rem}}
 
   footer{margin-top:2rem; padding:1rem; font-size:0.85rem; color:var(--text-secondary);
          border-top:1px solid var(--card-border); text-align:center}
   footer ul{list-style:none; padding:0; margin:0; line-height:1.6}
-
-  .btn{background:#0077b8;color:white;border:none;padding:6px 12px;border-radius:4px;cursor:pointer}
-  .btn:hover{filter:brightness(1.1)}
 </style>
 </head>
 <body>
@@ -64,12 +63,10 @@
       <div class="logo"><strong>WX</strong></div>
       <div>Ripley Weather • <span style="opacity:.85;">Local on the ~8s</span></div>
     </div>
-    <div class="chips">
-      <div id="runStamp" class="chip">Loading…</div>
-      <div id="srcChip" class="chip">SRC: —</div>
-      <div id="aqiChip" class="chip">AQI: —</div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <button id="refreshBtn" class="btn" title="Fetch fresh data">↻ Refresh</button>
+      <div id="runStamp" class="muted">Loading…</div>
     </div>
-    <button class="btn" onclick="refreshReport()">🔄 Refresh</button>
   </header>
 
   <div class="wrap">
@@ -81,7 +78,7 @@
       <a href="#seven">📆 7-Day</a>
       <a href="#dayplanner">🕒 24-Hour Planner</a>
       <h3>Storm Outlook</h3>
-      <a href="#trends">📈 Trends</a>
+      <a href="#trends">📈 Trends & Diagnostics</a>
       <a href="#severe">⛈ Severe Weather</a>
       <a href="#radar">🛰 Radar & Satellite</a>
       <a href="#lightning">⚡ Lightning</a>
@@ -104,7 +101,7 @@
       <section id="afd" class="card"><div class="bar">📝 Area Forecast Discussion</div><p class="muted">Full text hosted by weather.gov</p><p><a id="afdLink" href="#" target="_blank" rel="noopener">Open NWS ILN AFD</a></p></section>
       <section id="seven" class="card"><div class="bar">📆 7-Day Outlook</div><div id="sevenHtml">Loading…</div></section>
       <section id="dayplanner" class="card"><div class="bar">🕒 24-Hour Planner</div><div id="plannerHtml">Loading…</div></section>
-      <section id="trends" class="card"><div class="bar">📈 Trends</div><div id="trendsHtml">Loading…</div></section>
+      <section id="trends" class="card"><div class="bar">📈 Trends & Diagnostics</div><div id="trendsHtml">Loading…</div></section>
       <section id="severe" class="card"><div class="bar">⛈ Severe Weather Diagnostics</div><div id="severeHtml">Loading…</div></section>
       <section id="radar" class="card"><div class="bar">🛰 Radar & Satellite</div><div id="radarHtml">Loading…</div></section>
       <section id="lightning" class="card"><div class="bar">⚡ Lightning Summary</div><div id="lightningHtml">Loading…</div></section>
@@ -119,7 +116,7 @@
   </div>
 
   <footer>
-    <p><strong>Created by Matthew Carpenter</strong> —
+    <p><strong>Created by Matthew Carpenter</strong> — 
       <a href="mailto:matthew@carpsemail.com" style="color:var(--accent-color); text-decoration:none;">
         matthew@carpsemail.com
       </a>
@@ -128,103 +125,74 @@
     <ul>
       <li>🌐 NOAA / NWS ILN — 7-Day Forecast, Alerts, AFD</li>
       <li>🌤️ Open-Meteo — Backup Forecast & Astronomy</li>
-      <li>🌍 AirNow — AQI, Pollutants, Health Guidance</li>
       <li>🛰️ NWS / NOAA APIs — Radar, Satellite, Rivers & Climatology</li>
+      <li>🫧 AirNow — Current Air Quality Index</li>
       <li>⚡ LightningMaps.org — Real-time Lightning</li>
       <li>🚀 NASA / Heavens Above — ISS & Astronomy Events</li>
     </ul>
   </footer>
 
   <script>
-    // IMPORTANT: ensure this matches your current Web App deployment URL
+    // Your deployed Apps Script Web App URL:
     const EXEC_URL = 'https://script.google.com/macros/s/AKfycbxEHXreFLXPTRzpnbU4Zzhz09iLXD9TyzxSyeTFfz6vzXLXzJdHcisLpHEHKH3U35K36w/exec';
 
-    // Remove any previous JSONP script tags to avoid stale callbacks
-    function purgeJsonpTags() {
-      document.querySelectorAll('script[data-jsonp="1"]').forEach(n => n.remove());
+    // Remove any previous JSONP script tags for a clean reload
+    function removeOldJsonp_() {
+      const scripts = Array.from(document.querySelectorAll('script[data-jsonp="1"]'));
+      scripts.forEach(s => s.remove());
     }
 
-    // Hardened refresh: adds cache-buster & a watchdog timeout
-    function refreshReport() {
-      purgeJsonpTags();
-      const ts = Date.now();
+    function loadJSONP(force = false) {
+      removeOldJsonp_();
       const s = document.createElement('script');
-      s.src = `${EXEC_URL}?format=jsonp&callback=renderReport&_cb=${ts}`;
       s.setAttribute('data-jsonp','1');
-      s.onerror = () => {
-        document.getElementById('runStamp').textContent = 'Load error';
-        document.getElementById('runStamp').className = 'chip err';
-      };
+      const ts = Date.now();
+      // Cache-busting with unique "_" parameter; force=1 optionally
+      s.src = `${EXEC_URL}?format=jsonp&callback=renderReport&force=${force?1:0}&_=${ts}`;
+      s.defer = true;
       document.head.appendChild(s);
-
-      // If callback never fires in 6s, show a warning (cached/stale/blocked)
-      window.__jsonpWatchdog && clearTimeout(window.__jsonpWatchdog);
-      window.__jsonpWatchdog = setTimeout(() => {
-        const chip = document.getElementById('runStamp');
-        chip.textContent = 'No response (check Web App URL / cache)';
-        chip.className = 'chip warn';
-      }, 6000);
     }
 
-    // First load
-    refreshReport();
+    // Hook up Refresh button
+    const btn = document.getElementById('refreshBtn');
+    btn.addEventListener('click', () => {
+      btn.disabled = true;
+      btn.textContent = 'Refreshing…';
+      loadJSONP(true);
+      // Safety re-enable in 6s even if callback never fires
+      setTimeout(()=>{btn.disabled=false;btn.textContent='↻ Refresh';}, 6000);
+    });
 
-    // JSONP callback (called by server)
+    // JSONP callback from Apps Script
     function renderReport(report) {
-      try {
-        window.__jsonpWatchdog && clearTimeout(window.__jsonpWatchdog);
+      document.title = report.meta.runTitle || 'Ripley Weather • Dashboard';
+      document.getElementById('runTitle').textContent = report.meta.runTitle || 'Ripley Weather';
+      document.getElementById('runStamp').textContent = `${report.meta.runTime} • #${report.meta.totalToday}`;
+      document.getElementById('quickHtml').innerHTML     = report.quick;
+      document.getElementById('cardsHtml').innerHTML     = report.cards;
+      document.getElementById('sevenHtml').innerHTML     = report.sevenDay;
+      document.getElementById('plannerHtml').innerHTML   = report.hourly;
+      document.getElementById('trendsHtml').innerHTML    = report.trends;
+      document.getElementById('severeHtml').innerHTML    = report.severe;
+      document.getElementById('radarHtml').innerHTML     = report.radar;
+      document.getElementById('lightningHtml').innerHTML = report.lightning;
+      document.getElementById('alertsHtml').innerHTML    = report.alerts;
+      document.getElementById('airHtml').innerHTML       = report.air;
+      document.getElementById('localHtml').innerHTML     = report.local;
+      document.getElementById('riversHtml').innerHTML    = report.rivers;
+      document.getElementById('recordsHtml').innerHTML   = report.records;
+      document.getElementById('astroHtml').innerHTML     = report.astro;
+      document.getElementById('bottomHtml').innerHTML    = report.bottom;
+      const afd = document.getElementById('afdLink');
+      if (afd && report.afdLink) afd.href = report.afdLink;
 
-        if (report && report.error) {
-          const chip = document.getElementById('runStamp');
-          chip.textContent = 'Server error';
-          chip.className = 'chip err';
-          console.error('Server error:', report.message, report.stack);
-          return;
-        }
-
-        document.title = report.meta.runTitle || 'Ripley Weather • Dashboard';
-        document.getElementById('runTitle').textContent = report.meta.runTitle || 'Ripley Weather';
-
-        const stamp = document.getElementById('runStamp');
-        stamp.textContent = `${report.meta.runTime} • #${report.meta.totalToday}`;
-        stamp.className = 'chip ok';
-
-        const srcChip = document.getElementById('srcChip');
-        srcChip.textContent = `SRC: ${report.meta.debug?.source || '—'}`;
-        srcChip.className = 'chip';
-
-        const aqiChip = document.getElementById('aqiChip');
-        const aqi = report.meta.debug?.airnow || {};
-        const ok = (aqi.hasObs || aqi.hasFcst);
-        aqiChip.textContent = `AQI: ${aqi.hasObs ? `obs:${aqi.obsCount}` : ''}${(aqi.hasObs && aqi.hasFcst) ? ' | ' : ''}${aqi.hasFcst ? 'fcst:✓' : ''}` || 'AQI: —';
-        aqiChip.className = 'chip ' + (ok ? 'ok' : 'warn');
-
-        document.getElementById('quickHtml').innerHTML     = report.quick;
-        document.getElementById('cardsHtml').innerHTML     = report.cards;
-        document.getElementById('sevenHtml').innerHTML     = report.sevenDay;
-        document.getElementById('plannerHtml').innerHTML   = report.hourly;
-        document.getElementById('trendsHtml').innerHTML    = report.trends;
-        document.getElementById('severeHtml').innerHTML    = report.severe;
-        document.getElementById('radarHtml').innerHTML     = report.radar;
-        document.getElementById('lightningHtml').innerHTML = report.lightning;
-        document.getElementById('alertsHtml').innerHTML    = report.alerts;
-        document.getElementById('airHtml').innerHTML       = report.air;
-        document.getElementById('localHtml').innerHTML     = report.local;
-        document.getElementById('riversHtml').innerHTML    = report.rivers;
-        document.getElementById('recordsHtml').innerHTML   = report.records;
-        document.getElementById('astroHtml').innerHTML     = report.astro;
-        document.getElementById('bottomHtml').innerHTML    = report.bottom;
-
-        const afd = document.getElementById('afdLink');
-        if (afd && report.afdLink) afd.href = report.afdLink;
-
-      } catch (e) {
-        console.error('Render error:', e);
-        const chip = document.getElementById('runStamp');
-        chip.textContent = 'Render error';
-        chip.className = 'chip err';
-      }
+      // Reset button state if we got here via Refresh
+      btn.disabled = false;
+      btn.textContent = '↻ Refresh';
     }
+
+    // Initial load
+    loadJSONP(false);
   </script>
 </body>
 </html>
