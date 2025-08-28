@@ -2,122 +2,326 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Weather Check - Ripley, OH</title>
+<title>Ripley Weather • Dashboard</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+
 <style>
+  /* =========
+   * THEME VARIABLES
+   * Default = NWS (Blue/Red). Other themes override these on body.theme-*
+   * ========= */
   :root{
-    --bg-top:#003b6f; --bg-bottom:#000b1f; --panel:#002242; --bevel:#005d99; --shadow:#001326;
-    --headline:#0077b8; --headline-text:#fffd74; --body:#eaf5ff; --muted:#c6d6ea;
-    --link:#8bd0ff; --link-hover:#bdf0ff; --line:#0a3d66; --chip:#00a0a0;
-    --text-secondary:#9ab6d1; --card-border:#004c80; --accent-color:#8bd0ff;
+    --navy:#003366;          /* primary header/nav blue */
+    --royal:#1d4e89;         /* secondary royal blue */
+    --accent:#C4002F;        /* red accent (sparingly) */
+    --panel:#ffffff;         /* card background */
+    --bg:#f3f6fb;            /* page background */
+    --text:#0f172a;          /* near-black text */
+    --muted:#5a6b82;         /* muted text */
+    --link:#1d4e89;          /* links */
+    --link-hover:#0c3a6b;
+    --border:#d7dce6;        /* light border */
+    --shadow:0 6px 18px rgba(0, 0, 0, .06);
+    --chip-bg:#eaf1fb;
+    --chip-text:#0c3a6b;
+    --bar-top:#114b8f;       /* section bar gradient top */
+    --bar-bot:#0f417b;       /* section bar gradient bottom */
   }
-  *{box-sizing:border-box} html,body{height:100%}
-  body{margin:0;font-family:"Trebuchet MS",Verdana,Arial,sans-serif;color:var(--body);
-       background:linear-gradient(to bottom,var(--bg-top),var(--bg-bottom) 70%);display:flex;flex-direction:column;min-height:100vh}
 
-  header.mast{position:fixed;top:0;left:0;right:0;z-index:50;
-    background:linear-gradient(to bottom,#005aa3,#003b6f);
-    border-bottom:4px solid #012a4a;box-shadow:0 8px 0 var(--shadow);
-    padding:10px 16px;display:flex;align-items:center;gap:16px;justify-content:space-between}
-  .brand{display:flex;align-items:center;gap:12px;font-weight:800;text-transform:uppercase}
-  .logo{width:36px;height:36px;border-radius:6px;background:linear-gradient(135deg,#009ad6,#005aa3);
-    box-shadow:inset 0 0 0 3px #013e6b,inset 0 0 10px rgba(255,255,255,.15);
-    display:grid;place-items:center;color:#ffff9e}
+  /* Retro 90s Weather Channel */
+  body.theme-retro{
+    --navy:#003b6f; --royal:#005a8d; --accent:#ffcc00;
+    --panel:#002242; --bg:linear-gradient(to bottom,#003b6f,#000b1f 70%);
+    --text:#eaf5ff; --muted:#c6d6ea; --link:#8bd0ff; --link-hover:#bdf0ff;
+    --border:#004c80; --shadow:0 10px 24px rgba(0,0,0,.35);
+    --chip-bg:#00325d; --chip-text:#eaf5ff;
+    --bar-top:#0077b8; --bar-bot:#005a8d;
+  }
 
-  .wrap{display:flex;gap:16px;width:100%;padding-top:68px;flex:1}
+  /* Night Sky (dark) */
+  body.theme-night{
+    --navy:#0b1b36; --royal:#13315a; --accent:#e05e00;
+    --panel:#0f203f; --bg:#060e20;
+    --text:#e7f0ff; --muted:#9db2cc; --link:#8ec2ff; --link-hover:#cfe6ff;
+    --border:#224272; --shadow:0 12px 28px rgba(0,25,60,.45);
+    --chip-bg:#162e59; --chip-text:#e7f0ff;
+    --bar-top:#173a73; --bar-bot:#112c56;
+  }
 
-  nav.toc{width:260px;min-width:240px;position:sticky;top:74px;height:calc(100vh - 78px);overflow:auto;padding:10px 12px 18px;
-    background:linear-gradient(to bottom,#012a4a,#001a33);border-right:4px solid #012a4a;box-shadow:inset -6px 0 0 var(--shadow)}
-  .toc h3{margin:14px 8px 6px;font-size:.85rem;color:#cfeaff;letter-spacing:.08em;text-transform:uppercase;opacity:.9}
-  .toc a{display:block;margin:4px 6px;padding:7px 10px;color:var(--body);text-decoration:none;font-size:.95rem;
-    background:linear-gradient(to bottom,#00325d,#002242);border:2px solid #004c80;border-right-color:#0068b3;border-bottom-color:#0068b3;
-    box-shadow:3px 3px 0 #00152a;border-radius:2px}
-  .toc a:hover{color:var(--link-hover);transform:translateY(-1px)}
+  /* High Contrast (accessibility) */
+  body.theme-contrast{
+    --navy:#14213d; --royal:#1f2b50; --accent:#fca311;
+    --panel:#ffffff; --bg:#f8fafc;
+    --text:#0b0b0b; --muted:#525252; --link:#0b53bf; --link-hover:#073a86;
+    --border:#0b53bf33; --shadow:0 4px 16px rgba(0,0,0,.1);
+    --chip-bg:#0b53bf15; --chip-text:#0b53bf;
+    --bar-top:#0b53bf; --bar-bot:#0a48a5;
+  }
 
-  main.content{flex:1;padding:18px 18px 40px 6px;max-width:1200px;margin:0 auto}
-  section.card{background:linear-gradient(to bottom,#002e59,#002242);border:3px solid var(--bevel);
-    border-right-color:#0092e0;border-bottom-color:#0092e0;box-shadow:6px 6px 0 var(--shadow);
-    margin:16px 6px;padding:12px 14px}
-  .bar{margin:-12px -14px 12px;padding:8px 12px;background:linear-gradient(to bottom,#0077b8,#005a8d);color:var(--headline-text);
-    border-bottom:3px solid #003a63;font-weight:800;text-transform:uppercase;letter-spacing:.03em;display:flex;align-items:center;gap:10px}
-  .muted{color:var(--muted)} a{color:var(--link)} a:hover{color:var(--link-hover);text-decoration:underline}
+  /* =========
+   * BASE LAYOUT / COMPONENTS — all colors read from variables above
+   * ========= */
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;
+    color:var(--text);
+    background:var(--bg);
+    display:flex; flex-direction:column; min-height:100vh;
+  }
 
-  table{width:100%;border-collapse:collapse;background:#001e38;border:2px solid #004c80}
-  thead th{background:#013e6b;color:#fffbd1;padding:9px 10px;text-transform:uppercase;letter-spacing:.03em;border-bottom:2px solid #00609e;font-size:.92rem}
-  td{padding:9px 10px;border-bottom:1px solid #03365c}
-  tr:nth-child(even) td{background:#002442}
+  /* Masthead */
+  header.mast{
+    position:sticky; top:0; z-index:50;
+    background:linear-gradient(180deg, var(--navy), #022a56);
+    color:#fff; padding:12px 16px; border-bottom:4px solid var(--accent);
+  }
+  .mast-inner{display:flex; align-items:center; justify-content:space-between; gap:16px; max-width:1200px; margin:0 auto}
+  .brand{display:flex; align-items:center; gap:12px}
+  .logo{
+    width:36px; height:36px; border-radius:6px; display:grid; place-items:center;
+    background:#0e3e78; color:#fff; font-weight:800; box-shadow:inset 0 0 0 2px rgba(255,255,255,.15);
+  }
+  .brand h1{margin:0; font-size:1.05rem; letter-spacing:.2px; font-weight:800}
+  .brand small{opacity:.9; font-weight:600}
 
-  .btn{background:#0e78c2;border:2px solid #77c3ff;color:#fff; padding:6px 10px;border-radius:999px;cursor:pointer}
-  .btn[disabled]{opacity:.6;cursor:not-allowed}
+  .controls{display:flex; align-items:center; gap:10px; color:#e6eef9}
+  .stamp{font-size:.9rem; opacity:.9}
+  .btn{
+    background:#ffffff; color:var(--navy);
+    border:2px solid var(--accent); border-radius:999px; padding:6px 12px; font-weight:700;
+    cursor:pointer; transition:all .15s ease;
+  }
+  body.theme-retro .btn{ background:#0e78c2; color:#fff; border:2px solid #77c3ff; }
+  .btn:hover{background:#fff2f5; transform:translateY(-1px)}
+  .btn[disabled]{opacity:.55; cursor:not-allowed; transform:none}
 
-  @media(max-width:1100px){nav.toc{display:none}.wrap{padding-top:72px}.bar{font-size:.95rem}}
+  .select{
+    appearance:none; -webkit-appearance:none;
+    padding:6px 28px 6px 10px; border:2px solid var(--accent); border-radius:999px;
+    background:#fff url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="14" viewBox="0 0 20 14"><path fill="%23C4002F" d="M5 5l5 5 5-5z"/></svg>') no-repeat right 8px center/16px;
+    color:var(--navy); font-weight:700; cursor:pointer;
+  }
+  body.theme-retro .select{
+    background:#0e78c2 url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="14" viewBox="0 0 20 14"><path fill="%23ffffff" d="M5 5l5 5 5-5z"/></svg>') no-repeat right 8px center/16px;
+    color:#fff; border-color:#77c3ff;
+  }
 
-  footer{margin-top:2rem; padding:1rem; font-size:0.85rem; color:var(--text-secondary);
-         border-top:1px solid var(--card-border); text-align:center}
-  footer ul{list-style:none; padding:0; margin:0; line-height:1.6}
+  /* Layout */
+  .wrap{display:grid; grid-template-columns:260px 1fr; gap:18px; width:100%; max-width:1200px; margin:16px auto; padding:0 16px}
+  @media (max-width: 1100px){ .wrap{grid-template-columns:1fr} nav.toc{position:relative; top:auto} }
+
+  /* TOC / Navigation */
+  nav.toc{
+    position:sticky; top:76px; align-self:start;
+    background:#0e2f5a; color:#eaf1fb; border:1px solid #0b294f; border-radius:10px; padding:10px;
+    box-shadow:var(--shadow);
+  }
+  body.theme-retro nav.toc{ background:#001a33; border-color:#003b6f }
+  body.theme-night nav.toc{ background:#0b1f3e; border-color:#173a73 }
+  body.theme-contrast nav.toc{ background:#ffffff; border-color:#0b53bf33; color:#0b0b0b }
+
+  .toc h3{margin:12px 8px 6px; font-size:.8rem; text-transform:uppercase; letter-spacing:.06em; color:#d8e6f7}
+  body.theme-contrast .toc h3{ color:#0b53bf; }
+  .toc a{
+    display:block; margin:6px 6px; padding:8px 10px; border-radius:8px; text-decoration:none;
+    color:#eaf1fb; background:#153d70; border:1px solid #0f325d;
+  }
+  .toc a:hover{background:#1b4b8a}
+  body.theme-contrast .toc a{ color:#0b0b0b; background:#f7faff; border-color:#dfe8fb }
+  body.theme-contrast .toc a:hover{ background:#eaf2ff }
+
+  .toc .group{ margin:8px 0; border-left:3px solid var(--accent); padding-left:6px; }
+
+  /* Cards / Sections */
+  main.content{min-width:0}
+  section.card{
+    background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:14px 16px; margin-bottom:14px;
+    box-shadow:var(--shadow);
+  }
+  body.theme-retro section.card{ background:var(--panel); border-color:#005d99 }
+  body.theme-retro main.content h2{ color:#fffd74 }
+
+  .bar{
+    display:flex; align-items:center; gap:10px; margin:-14px -16px 12px; padding:10px 14px; border-radius:12px 12px 0 0;
+    background:linear-gradient(180deg, var(--bar-top), var(--bar-bot)); color:#fff; border-bottom:3px solid var(--accent); font-weight:800; letter-spacing:.2px;
+  }
+
+  /* Tables & text */
+  table{width:100%; border-collapse:collapse; background:#fff; border:1px solid var(--border); border-radius:8px; overflow:hidden}
+  thead th{background:#0f417b; color:#fff; padding:10px; text-align:left; font-weight:800; font-size:.92rem}
+  body.theme-retro thead th{ background:#005a8d }
+  body.theme-night thead th{ background:#173a73 }
+  body.theme-contrast thead th{ background:#0b53bf }
+
+  td{padding:10px; border-top:1px solid var(--border)}
+  tr:nth-child(even) td{background:#f8fbff}
+  body.theme-retro tr:nth-child(even) td{ background:#001e38 }
+
+  .muted{color:var(--muted)}
+  a{color:var(--link); text-decoration:none}
+  a:hover{color:var(--link-hover); text-decoration:underline}
+
+  /* Chips for small values */
+  .chips{display:flex; flex-wrap:wrap; gap:8px; margin:6px 0 2px}
+  .chip{background:var(--chip-bg); color:var(--chip-text); padding:4px 8px; border-radius:999px; border:1px solid #d1e3fb; font-size:.9rem; font-weight:700}
+
+  /* Slightly larger spacing for Quick Look / Key Items */
+  #quickHtml ul, #cardsHtml ul{display:grid; gap:8px; margin:0; padding-left:1.1rem}
+  #quickHtml li, #cardsHtml li{line-height:1.5}
+
+  footer{
+    max-width:1200px; margin:24px auto 28px; padding:16px; color:var(--muted); font-size:.9rem;
+    border-top:3px solid var(--accent)
+  }
+  footer ul{list-style:none; padding:0; margin:8px 0 0; line-height:1.6}
 </style>
 </head>
+
 <body>
   <header class="mast">
-    <div class="brand">
-      <div class="logo"><strong>WX</strong></div>
-      <div>Ripley Weather • <span style="opacity:.85;">Local on the ~8s</span></div>
-    </div>
-    <div style="display:flex;align-items:center;gap:10px;">
-      <button id="refreshBtn" class="btn" title="Fetch fresh data">↻ Refresh</button>
-      <div id="runStamp" class="muted">Loading…</div>
+    <div class="mast-inner">
+      <div class="brand">
+        <div class="logo">WX</div>
+        <h1>Ripley Weather <small>• Local Outlook</small></h1>
+      </div>
+      <div class="controls">
+        <select id="themeSelect" class="select" title="Choose theme">
+          <option value="nws">NWS (Blue/Red)</option>
+          <option value="retro">Retro 90s</option>
+          <option value="night">Night Sky</option>
+          <option value="contrast">High Contrast</option>
+        </select>
+        <button id="refreshBtn" class="btn" title="Fetch fresh data">↻ Refresh</button>
+        <div id="runStamp" class="stamp">Loading…</div>
+      </div>
     </div>
   </header>
 
   <div class="wrap">
     <nav class="toc">
-      <h3>Forecast</h3>
-      <a href="#quick">🔎 Quick Look</a>
-      <a href="#cards">📋 Key Cards</a>
-      <a href="#afd">📝 AFD (External)</a>
-      <a href="#seven">📆 7-Day</a>
-      <a href="#dayplanner">🕒 24-Hour Planner</a>
-      <h3>Storm Outlook</h3>
-      <a href="#trends">📈 Trends & Diagnostics</a>
-      <a href="#severe">⛈ Severe Weather</a>
-      <a href="#radar">🛰 Radar & Satellite</a>
-      <a href="#lightning">⚡ Lightning</a>
-      <h3>Impacts</h3>
-      <a href="#alerts">⚠️ Alerts</a>
-      <a href="#health">🌬 Air & Health</a>
-      <a href="#local">🏫 Local Impacts</a>
-      <a href="#rivers">🌊 Rivers & Streams</a>
-      <h3>Climate & Sky</h3>
-      <a href="#records">📊 Climatology</a>
-      <a href="#astro">🌌 Astronomy</a>
-      <h3>Summary</h3>
-      <a href="#bottom">✅ Bottom Line</a>
+      <div class="group">
+        <h3>Forecast</h3>
+        <a href="#quick">🔎 Quick Look</a>
+        <a href="#cards">📋 Key Cards</a>
+        <a href="#afd">📝 AFD (External)</a>
+        <a href="#seven">📆 7-Day</a>
+        <a href="#dayplanner">🕒 24-Hour Planner</a>
+      </div>
+      <div class="group">
+        <h3>Storm Outlook</h3>
+        <a href="#trends">📈 Trends & Diagnostics</a>
+        <a href="#severe">⛈ Severe Weather</a>
+        <a href="#radar">🛰 Radar & Satellite</a>
+        <a href="#lightning">⚡ Lightning</a>
+      </div>
+      <div class="group">
+        <h3>Impacts</h3>
+        <a href="#alerts">⚠️ Alerts</a>
+        <a href="#health">🌬 Air & Health</a>
+        <a href="#local">🏫 Local Impacts</a>
+        <a href="#rivers">🌊 Rivers & Streams</a>
+      </div>
+      <div class="group">
+        <h3>Climate & Sky</h3>
+        <a href="#records">📊 Climatology</a>
+        <a href="#astro">🌌 Astronomy</a>
+      </div>
+      <div class="group">
+        <h3>Summary</h3>
+        <a href="#bottom">✅ Bottom Line</a>
+      </div>
     </nav>
 
     <main class="content">
-      <h1 id="runTitle" style="margin:0 6px 6px;font-size:1.4rem;">Ripley Weather</h1>
-      <section id="quick" class="card"><div class="bar">🔎 Quick Look</div><div id="quickHtml">Loading…</div></section>
-      <section id="cards" class="card"><div class="bar">📋 Key Items</div><div id="cardsHtml">Loading…</div></section>
-      <section id="afd" class="card"><div class="bar">📝 Area Forecast Discussion</div><p class="muted">Full text hosted by weather.gov</p><p><a id="afdLink" href="#" target="_blank" rel="noopener">Open NWS ILN AFD</a></p></section>
-      <section id="seven" class="card"><div class="bar">📆 7-Day Outlook</div><div id="sevenHtml">Loading…</div></section>
-      <section id="dayplanner" class="card"><div class="bar">🕒 24-Hour Planner</div><div id="plannerHtml">Loading…</div></section>
-      <section id="trends" class="card"><div class="bar">📈 Trends & Diagnostics</div><div id="trendsHtml">Loading…</div></section>
-      <section id="severe" class="card"><div class="bar">⛈ Severe Weather Diagnostics</div><div id="severeHtml">Loading…</div></section>
-      <section id="radar" class="card"><div class="bar">🛰 Radar & Satellite</div><div id="radarHtml">Loading…</div></section>
-      <section id="lightning" class="card"><div class="bar">⚡ Lightning Summary</div><div id="lightningHtml">Loading…</div></section>
-      <section id="alerts" class="card"><div class="bar">⚠️ Alerts & Hazards</div><div id="alertsHtml">Loading…</div></section>
-      <section id="health" class="card"><div class="bar">🌬 Air & Health</div><div id="airHtml">Loading…</div></section>
-      <section id="local" class="card"><div class="bar">🏫 Local Impacts</div><div id="localHtml">Loading…</div></section>
-      <section id="rivers" class="card"><div class="bar">🌊 Rivers & Streams</div><div id="riversHtml">Loading…</div></section>
-      <section id="records" class="card"><div class="bar">📊 Climatology & Records</div><div id="recordsHtml">Loading…</div></section>
-      <section id="astro" class="card"><div class="bar">🌌 Astronomy & Skywatch</div><div id="astroHtml">Loading…</div></section>
-      <section id="bottom" class="card"><div class="bar">✅ Bottom Line</div><div id="bottomHtml">Loading…</div></section>
+      <h2 id="runTitle" style="margin:0 0 8px; font-size:1.35rem; color:var(--navy)">Ripley Weather</h2>
+
+      <section id="quick" class="card">
+        <div class="bar">🔎 Quick Look</div>
+        <div id="quickHtml">Loading…</div>
+      </section>
+
+      <section id="cards" class="card">
+        <div class="bar">📋 Key Items</div>
+        <div id="cardsHtml">Loading…</div>
+      </section>
+
+      <section id="afd" class="card">
+        <div class="bar">📝 Area Forecast Discussion</div>
+        <p class="muted">Full text hosted by weather.gov</p>
+        <p><a id="afdLink" href="#" target="_blank" rel="noopener">Open NWS ILN AFD</a></p>
+      </section>
+
+      <section id="seven" class="card">
+        <div class="bar">📆 7-Day Outlook</div>
+        <div id="sevenHtml">Loading…</div>
+      </section>
+
+      <section id="dayplanner" class="card">
+        <div class="bar">🕒 24-Hour Planner</div>
+        <div id="plannerHtml">Loading…</div>
+      </section>
+
+      <section id="trends" class="card">
+        <div class="bar">📈 Trends & Diagnostics</div>
+        <div id="trendsHtml">Loading…</div>
+      </section>
+
+      <section id="severe" class="card">
+        <div class="bar">⛈ Severe Weather Diagnostics</div>
+        <div id="severeHtml">Loading…</div>
+      </section>
+
+      <section id="radar" class="card">
+        <div class="bar">🛰 Radar & Satellite</div>
+        <div id="radarHtml">Loading…</div>
+      </section>
+
+      <section id="lightning" class="card">
+        <div class="bar">⚡ Lightning Summary</div>
+        <div id="lightningHtml">Loading…</div>
+      </section>
+
+      <section id="alerts" class="card">
+        <div class="bar">⚠️ Alerts & Hazards</div>
+        <div id="alertsHtml">Loading…</div>
+      </section>
+
+      <section id="health" class="card">
+        <div class="bar">🌬 Air & Health</div>
+        <div id="airHtml">Loading…</div>
+      </section>
+
+      <section id="local" class="card">
+        <div class="bar">🏫 Local Impacts</div>
+        <div id="localHtml">Loading…</div>
+      </section>
+
+      <section id="rivers" class="card">
+        <div class="bar">🌊 Rivers & Streams</div>
+        <div id="riversHtml">Loading…</div>
+      </section>
+
+      <section id="records" class="card">
+        <div class="bar">📊 Climatology & Records</div>
+        <div id="recordsHtml">Loading…</div>
+      </section>
+
+      <section id="astro" class="card">
+        <div class="bar">🌌 Astronomy & Skywatch</div>
+        <div id="astroHtml">Loading…</div>
+      </section>
+
+      <section id="bottom" class="card">
+        <div class="bar">✅ Bottom Line</div>
+        <div id="bottomHtml">Loading…</div>
+      </section>
     </main>
   </div>
 
   <footer>
     <p><strong>Created by Matthew Carpenter</strong> — 
-      <a href="mailto:matthew@carpsemail.com" style="color:var(--accent-color); text-decoration:none;">
+      <a href="mailto:matthew@carpsemail.com" style="color:var(--link); text-decoration:underline">
         matthew@carpsemail.com
       </a>
     </p>
@@ -125,8 +329,8 @@
     <ul>
       <li>🌐 NOAA / NWS ILN — 7-Day Forecast, Alerts, AFD</li>
       <li>🌤️ Open-Meteo — Backup Forecast & Astronomy</li>
-      <li>🛰️ NWS / NOAA APIs — Radar, Satellite, Rivers & Climatology</li>
       <li>🫧 AirNow — Current Air Quality Index</li>
+      <li>🛰️ NWS / NOAA APIs — Radar, Satellite, Rivers & Climatology</li>
       <li>⚡ LightningMaps.org — Real-time Lightning</li>
       <li>🚀 NASA / Heavens Above — ISS & Astronomy Events</li>
     </ul>
@@ -136,10 +340,30 @@
     // Your deployed Apps Script Web App URL:
     const EXEC_URL = 'https://script.google.com/macros/s/AKfycbxEHXreFLXPTRzpnbU4Zzhz09iLXD9TyzxSyeTFfz6vzXLXzJdHcisLpHEHKH3U35K36w/exec';
 
-    // Remove any previous JSONP script tags for a clean reload
+    // THEME: load/store selection
+    const THEME_KEY = 'rw-theme';
+    function applyTheme(theme){
+      document.body.classList.remove('theme-retro','theme-night','theme-contrast');
+      if (theme === 'retro') document.body.classList.add('theme-retro');
+      else if (theme === 'night') document.body.classList.add('theme-night');
+      else if (theme === 'contrast') document.body.classList.add('theme-contrast');
+      // default (NWS) uses base variables, no class needed
+    }
+    function initTheme(){
+      const saved = localStorage.getItem(THEME_KEY) || 'nws';
+      const sel = document.getElementById('themeSelect');
+      sel.value = saved;
+      applyTheme(saved);
+      sel.addEventListener('change', () => {
+        const val = sel.value;
+        localStorage.setItem(THEME_KEY, val);
+        applyTheme(val);
+      });
+    }
+
+    // Remove previous JSONP script tags to avoid stacking
     function removeOldJsonp_() {
-      const scripts = Array.from(document.querySelectorAll('script[data-jsonp="1"]'));
-      scripts.forEach(s => s.remove());
+      document.querySelectorAll('script[data-jsonp="1"]').forEach(s => s.remove());
     }
 
     function loadJSONP(force = false) {
@@ -147,27 +371,24 @@
       const s = document.createElement('script');
       s.setAttribute('data-jsonp','1');
       const ts = Date.now();
-      // Cache-busting with unique "_" parameter; force=1 optionally
       s.src = `${EXEC_URL}?format=jsonp&callback=renderReport&force=${force?1:0}&_=${ts}`;
       s.defer = true;
       document.head.appendChild(s);
     }
 
-    // Hook up Refresh button
     const btn = document.getElementById('refreshBtn');
     btn.addEventListener('click', () => {
       btn.disabled = true;
       btn.textContent = 'Refreshing…';
       loadJSONP(true);
-      // Safety re-enable in 6s even if callback never fires
       setTimeout(()=>{btn.disabled=false;btn.textContent='↻ Refresh';}, 6000);
     });
 
-    // JSONP callback from Apps Script
     function renderReport(report) {
       document.title = report.meta.runTitle || 'Ripley Weather • Dashboard';
       document.getElementById('runTitle').textContent = report.meta.runTitle || 'Ripley Weather';
       document.getElementById('runStamp').textContent = `${report.meta.runTime} • #${report.meta.totalToday}`;
+
       document.getElementById('quickHtml').innerHTML     = report.quick;
       document.getElementById('cardsHtml').innerHTML     = report.cards;
       document.getElementById('sevenHtml').innerHTML     = report.sevenDay;
@@ -183,15 +404,16 @@
       document.getElementById('recordsHtml').innerHTML   = report.records;
       document.getElementById('astroHtml').innerHTML     = report.astro;
       document.getElementById('bottomHtml').innerHTML    = report.bottom;
+
       const afd = document.getElementById('afdLink');
       if (afd && report.afdLink) afd.href = report.afdLink;
 
-      // Reset button state if we got here via Refresh
       btn.disabled = false;
       btn.textContent = '↻ Refresh';
     }
 
-    // Initial load
+    // Initial theme + data
+    initTheme();
     loadJSONP(false);
   </script>
 </body>
