@@ -2,15 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Ripley Weather • Matthew Carpenter</title>
+<title>Ripley Weather • Dashboard</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
   :root{
     --bg-top:#003b6f; --bg-bottom:#000b1f; --panel:#002242; --bevel:#005d99; --shadow:#001326;
     --headline:#0077b8; --headline-text:#fffd74; --body:#eaf5ff; --muted:#c6d6ea;
-    --link:#8bd0ff; --link-hover:#bdf0ff; --line:#0a3d66; --chip:#00a0a0;
-    --text-secondary:#9ab6d1; --card-border:#004c80; --accent-color:#8bd0ff;
+    --link:#8bd0ff; --link-hover:#bdf0ff; --card-border:#004c80;
   }
   *{box-sizing:border-box} html,body{height:100%}
   body{margin:0;font-family:"Trebuchet MS",Verdana,Arial,sans-serif;color:var(--body);
@@ -50,11 +49,12 @@
 
   .btn{cursor:pointer; font:inherit; color:var(--body); background:#014b81; border:1px solid #0a6fb3; padding:6px 10px; border-radius:4px}
   .btn:hover{background:#01629f}
+  .header-right{display:flex;gap:8px;align-items:center}
 
   @media(max-width:1100px){nav.toc{display:none}.wrap{padding-top:72px}.bar{font-size:.95rem}}
 
-  footer{margin-top:2rem; padding:1rem; font-size:0.85rem; color:var(--text-secondary);
-         border-top:1px solid var(--card-border); text-align:center}
+  footer{margin-top:2rem; padding:1rem; font-size:0.85rem; color:#9ab6d1;
+         border-top:1px solid #004c80; text-align:center}
   footer ul{list-style:none; padding:0; margin:0; line-height:1.6}
 </style>
 </head>
@@ -64,8 +64,9 @@
       <div class="logo"><strong>WX</strong></div>
       <div>Ripley Weather • <span style="opacity:.85;">Local on the ~8s</span></div>
     </div>
-    <div class="muted" style="display:flex;gap:8px;align-items:center">
-      <span id="runStamp">Loading…</span>
+    <div class="header-right">
+      <span id="debugBadge" class="muted">Loading…</span>
+      <span id="runStamp" class="muted"></span>
       <button id="refreshBtn" class="btn" title="Reload data (soft)">Refresh</button>
       <button id="hardBtn" class="btn" title="Force rebuild & bypass caches">Hard Refresh</button>
     </div>
@@ -98,42 +99,50 @@
 
     <main class="content">
       <h1 id="runTitle" style="margin:0 6px 6px;font-size:1.4rem;">Ripley Weather</h1>
+
       <section id="quick" class="card"><div class="bar">🔎 Quick Look</div><div id="quickHtml">Loading…</div></section>
       <section id="cards" class="card"><div class="bar">📋 Key Items</div><div id="cardsHtml">Loading…</div></section>
+
       <section id="afd" class="card"><div class="bar">📝 Area Forecast Discussion</div>
-        <p class="muted">Full text hosted by weather.gov</p>
+        <p class="muted">Full text hosted at weather.gov (external):</p>
         <p><a id="afdLink" href="#" target="_blank" rel="noopener">Open NWS ILN AFD</a></p>
       </section>
+
       <section id="seven" class="card"><div class="bar">📆 7-Day Outlook</div><div id="sevenHtml">Loading…</div></section>
       <section id="dayplanner" class="card"><div class="bar">🕒 24-Hour Planner</div><div id="plannerHtml">Loading…</div></section>
+
       <section id="trends" class="card"><div class="bar">📈 Trends & Diagnostics</div><div id="trendsHtml">Loading…</div></section>
       <section id="severe" class="card"><div class="bar">⛈ Severe Weather Diagnostics</div><div id="severeHtml">Loading…</div></section>
+
       <section id="radar" class="card"><div class="bar">🛰 Radar & Satellite</div><div id="radarHtml">Loading…</div></section>
       <section id="lightning" class="card"><div class="bar">⚡ Lightning Summary</div><div id="lightningHtml">Loading…</div></section>
+
       <section id="alerts" class="card"><div class="bar">⚠️ Alerts & Hazards</div><div id="alertsHtml">Loading…</div></section>
       <section id="health" class="card"><div class="bar">🌬 Air & Health</div><div id="airHtml">Loading…</div></section>
       <section id="local" class="card"><div class="bar">🏫 Local Impacts</div><div id="localHtml">Loading…</div></section>
       <section id="rivers" class="card"><div class="bar">🌊 Rivers & Streams</div><div id="riversHtml">Loading…</div></section>
+
       <section id="records" class="card"><div class="bar">📊 Climatology & Records</div><div id="recordsHtml">Loading…</div></section>
       <section id="astro" class="card"><div class="bar">🌌 Astronomy & Skywatch</div><div id="astroHtml">Loading…</div></section>
+
       <section id="bottom" class="card"><div class="bar">✅ Bottom Line</div><div id="bottomHtml">Loading…</div></section>
     </main>
   </div>
 
   <footer>
     <p><strong>Created by Matthew Carpenter</strong> — 
-      <a href="mailto:matthew@carpsemail.com" style="color:var(--accent-color); text-decoration:none;">
+      <a href="mailto:matthew@carpsemail.com" style="color:#8bd0ff; text-decoration:none;">
         matthew@carpsemail.com
       </a>
     </p>
     <p><em>Data Sources:</em></p>
     <ul>
-      <li>🌐 NOAA / NWS ILN — 7-Day Forecast, Alerts, AFD, CLI (records)</li>
-      <li>🌤️ Open-Meteo — Backup Forecast & Astronomy</li>
-      <li>🛰️ NWS / NOAA APIs — Radar, Satellite, Rivers & Climatology</li>
+      <li>🌐 NOAA / NWS ILN — 7-Day Forecast, Alerts, AFD</li>
+      <li>🌤️ Open-Meteo — Current/Hourly/Trends/Astro</li>
       <li>🌫️ AirNow — Live AQI (PM2.5/O₃)</li>
+      <li>🛰️ NOAA — Radar & GOES-East Satellite</li>
       <li>⚡ LightningMaps.org — Real-time Lightning</li>
-      <li>🚀 NASA / Heavens Above — ISS & Astronomy Events</li>
+      <li>🌊 NWS AHPS — Rivers & Streams</li>
     </ul>
   </footer>
 
@@ -162,7 +171,7 @@
           s.remove();
           delete window[cbName];
           if (tries < 1) {
-            setTimeout(() => injectJSONP(params, tries + 1).then(resolve).catch(reject), 1500);
+            setTimeout(() => injectJSONP(params, tries + 1).then(resolve).catch(reject), 1200);
           } else {
             reject(new Error('JSONP load failed'));
           }
@@ -173,13 +182,13 @@
 
     function softRefresh() {
       document.getElementById('runStamp').textContent = 'Refreshing…';
-      injectJSONP().then(() => {}).catch(() => {
+      injectJSONP().catch(() => {
         document.getElementById('runStamp').textContent = 'Error refreshing';
       });
     }
     function hardRefresh() {
       document.getElementById('runStamp').textContent = 'Hard refreshing…';
-      injectJSONP({ refresh: '1' }).then(() => {}).catch(() => {
+      injectJSONP({ refresh: '1' }).catch(() => {
         document.getElementById('runStamp').textContent = 'Error refreshing';
       });
     }
@@ -190,7 +199,7 @@
       try {
         document.title = report.meta.runTitle || 'Ripley Weather • Dashboard';
         document.getElementById('runTitle').textContent = report.meta.runTitle || 'Ripley Weather';
-        document.getElementById('runStamp').textContent = `${report.meta.runTime} • #${report.meta.totalToday}`;
+        document.getElementById('runStamp').textContent = report.meta.runTime ? ('• ' + report.meta.runTime) : '';
 
         const set = (id, html, fallback='—') => {
           const el = document.getElementById(id);
@@ -212,23 +221,31 @@
         set('astroHtml',     report.astro,     'Astronomy unavailable.');
         set('bottomHtml',    report.bottom,    '—');
 
-        const afd = document.getElementById('afdLink');
-        if (afd && report.afdLink) afd.href = report.afdLink;
+        if (report.afdLink) {
+          const afd = document.getElementById('afdLink');
+          if (afd) afd.href = report.afdLink;
+        }
+        const dbg = report.meta && report.meta.debug;
+        if (dbg) {
+          document.getElementById('debugBadge').textContent =
+            `🔧 ${dbg.source} | AQI ${dbg.aqi ? '✓' : '✗'} | ${dbg.runTime}`;
+        } else {
+          document.getElementById('debugBadge').textContent = '🔧 —';
+        }
       } catch (e) {
         console.error('render error', e);
         document.getElementById('runStamp').textContent = 'Error loading report';
       }
     }
 
-    // Initial load
+    // Initial load with cache buster
     injectJSONP();
 
-    // One-time cache buster to defeat any stale 301s from old forwarding
-    (function oneTimeCacheBuster(){
+    // One-time URL cache-buster to defeat sticky redirects
+    (function oneTimeBuster(){
       try {
         if (!sessionStorage.getItem('rw_cache_buster_done') &&
-            window.location.search === '' &&
-            !window.location.hash) {
+            window.location.search === '' && !window.location.hash) {
           sessionStorage.setItem('rw_cache_buster_done', '1');
           var sep = window.location.href.indexOf('?') === -1 ? '?' : '&';
           window.location.replace(window.location.href + sep + 'v=' + Date.now());
