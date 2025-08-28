@@ -128,9 +128,10 @@
     </p>
     <p><em>Data Sources:</em></p>
     <ul>
-      <li>🌐 NOAA / NWS ILN — 7-Day Forecast, Alerts, AFD</li>
+      <li>🌐 NOAA / NWS ILN — 7-Day Forecast, Alerts, AFD, CLI (records)</li>
       <li>🌤️ Open-Meteo — Backup Forecast & Astronomy</li>
       <li>🛰️ NWS / NOAA APIs — Radar, Satellite, Rivers & Climatology</li>
+      <li>🌫️ AirNow — Live AQI (PM2.5/O₃)</li>
       <li>⚡ LightningMaps.org — Real-time Lightning</li>
       <li>🚀 NASA / Heavens Above — ISS & Astronomy Events</li>
     </ul>
@@ -141,7 +142,6 @@
 
     function injectJSONP(params = {}, tries = 0) {
       return new Promise((resolve, reject) => {
-        // Prepare a unique callback for this load (avoids stale closures)
         const cbName = 'renderReport_' + Date.now() + '_' + Math.floor(Math.random()*1e6);
         window[cbName] = function(payload) {
           try { renderReport(payload); resolve(); }
@@ -162,7 +162,6 @@
           s.remove();
           delete window[cbName];
           if (tries < 1) {
-            // Retry once after a short delay
             setTimeout(() => injectJSONP(params, tries + 1).then(resolve).catch(reject), 1500);
           } else {
             reject(new Error('JSONP load failed'));
@@ -174,22 +173,16 @@
 
     function softRefresh() {
       document.getElementById('runStamp').textContent = 'Refreshing…';
-      injectJSONP().then(() => {
-        // noop
-      }).catch(() => {
+      injectJSONP().then(() => {}).catch(() => {
         document.getElementById('runStamp').textContent = 'Error refreshing';
       });
     }
-
     function hardRefresh() {
       document.getElementById('runStamp').textContent = 'Hard refreshing…';
-      injectJSONP({ refresh: '1' }).then(() => {
-        // noop
-      }).catch(() => {
+      injectJSONP({ refresh: '1' }).then(() => {}).catch(() => {
         document.getElementById('runStamp').textContent = 'Error refreshing';
       });
     }
-
     document.getElementById('refreshBtn').addEventListener('click', softRefresh);
     document.getElementById('hardBtn').addEventListener('click', hardRefresh);
 
@@ -230,7 +223,7 @@
     // Initial load
     injectJSONP();
 
-    // One-time cache buster for any stale 301s on first visit
+    // One-time cache buster to defeat any stale 301s from old forwarding
     (function oneTimeCacheBuster(){
       try {
         if (!sessionStorage.getItem('rw_cache_buster_done') &&
