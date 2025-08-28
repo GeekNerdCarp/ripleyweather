@@ -53,9 +53,6 @@
   footer{margin-top:2rem; padding:1rem; font-size:0.85rem; color:var(--text-secondary);
          border-top:1px solid var(--card-border); text-align:center}
   footer ul{list-style:none; padding:0; margin:0; line-height:1.6}
-
-  .btn{cursor:pointer; font:inherit; color:var(--body); background:#014b81; border:1px solid #0a6fb3; padding:6px 10px; border-radius:4px}
-  .btn:hover{background:#01629f}
 </style>
 </head>
 <body>
@@ -64,10 +61,7 @@
       <div class="logo"><strong>WX</strong></div>
       <div>Ripley Weather • <span style="opacity:.85;">Local on the ~8s</span></div>
     </div>
-    <div class="muted" style="display:flex;gap:10px;align-items:center">
-      <span id="runStamp">Loading…</span>
-      <button id="forceBtn" class="btn" title="Force rebuild & bypass cache">Force Refresh</button>
-    </div>
+    <div id="runStamp" class="muted">Loading…</div>
   </header>
 
   <div class="wrap">
@@ -126,74 +120,60 @@
     <ul>
       <li>🌐 NOAA / NWS ILN — 7-Day Forecast, Alerts, AFD</li>
       <li>🌤️ Open-Meteo — Backup Forecast & Astronomy</li>
-      <li>🛰️ NOAA & NESDIS — Radar / Satellite imagery links</li>
-      <li>⚡ LightningMaps.org — Real-time lightning</li>
-      <li>🚀 NASA / Heavens-Above — ISS & sky events</li>
+      <li>🛰️ NWS / NOAA APIs — Radar, Satellite, Rivers & Climatology</li>
+      <li>⚡ LightningMaps.org — Real-time Lightning</li>
+      <li>🚀 NASA / Heavens Above — ISS & Astronomy Events</li>
     </ul>
   </footer>
 
   <script>
     const EXEC_URL = 'https://script.google.com/macros/s/AKfycbxEHXreFLXPTRzpnbU4Zzhz09iLXD9TyzxSyeTFfz6vzXLXzJdHcisLpHEHKH3U35K36w/exec';
 
-    // inject JSONP <script>
-    function loadJSONP(params = {}) {
+    (function loadJSONP() {
       const s = document.createElement('script');
-      const search = new URLSearchParams({
-        format: 'jsonp',
-        callback: 'renderReport',
-        t: Date.now(),
-        ...params
-      }).toString();
-      s.src = `${EXEC_URL}?${search}`;
+      const ts = Date.now();
+      s.src = `${EXEC_URL}?format=jsonp&callback=renderReport&t=${ts}`;
       s.defer = true;
       document.head.appendChild(s);
-    }
+    })();
 
-    // initial load
-    loadJSONP();
-
-    // force refresh button (bypass server cache one time)
-    document.getElementById('forceBtn').addEventListener('click', () => {
-      document.getElementById('runStamp').textContent = 'Refreshing…';
-      loadJSONP({ refresh: '1' });
-    });
-
-    // renderer with gentle fallbacks
     function renderReport(report) {
-      try {
-        const meta = report?.meta || {};
-        document.title = meta.runTitle || 'Ripley Weather • Dashboard';
-        document.getElementById('runTitle').textContent = meta.runTitle || 'Ripley Weather';
-        document.getElementById('runStamp').textContent = (meta.runTime ? `${meta.runTime} • #${meta.totalToday}` : 'Updated');
-
-        const set = (id, html, fallback='—') => {
-          const el = document.getElementById(id);
-          el.innerHTML = (html && html.length) ? html : `<p class="muted">${fallback}</p>`;
-        };
-
-        set('quickHtml',     report.quick,     'Quick Look unavailable.');
-        set('cardsHtml',     report.cards,     'Key cards unavailable.');
-        set('sevenHtml',     report.sevenDay,  '7-Day forecast unavailable.');
-        set('plannerHtml',   report.hourly,    'Planner unavailable.');
-        set('trendsHtml',    report.trends,    'Trends unavailable.');
-        set('severeHtml',    report.severe,    'Severe diagnostics unavailable.');
-        set('radarHtml',     report.radar,     'Radar & satellite unavailable.');
-        set('lightningHtml', report.lightning, 'Lightning summary unavailable.');
-        set('alertsHtml',    report.alerts,    'Alerts unavailable.');
-        set('airHtml',       report.air,       'Air & health unavailable.');
-        set('localHtml',     report.local,     'Local impacts unavailable.');
-        set('riversHtml',    report.rivers,    'Rivers & streams unavailable.');
-        set('recordsHtml',   report.records,   'Climatology unavailable.');
-        set('astroHtml',     report.astro,     'Astronomy unavailable.');
-        set('bottomHtml',    report.bottom,    '—');
-
-        const afd = document.getElementById('afdLink');
-        if (afd) afd.href = report.afdLink || afd.href;
-      } catch (e) {
-        console.error('render error', e);
-        document.getElementById('runStamp').textContent = 'Error loading report';
-      }
+      document.title = report.meta.runTitle || 'Ripley Weather • Dashboard';
+      document.getElementById('runTitle').textContent = report.meta.runTitle || 'Ripley Weather';
+      document.getElementById('runStamp').textContent = `${report.meta.runTime} • #${report.meta.totalToday}`;
+      document.getElementById('quickHtml').innerHTML     = report.quick;
+      document.getElementById('cardsHtml').innerHTML     = report.cards;
+      document.getElementById('sevenHtml').innerHTML     = report.sevenDay;
+      document.getElementById('plannerHtml').innerHTML   = report.hourly;
+      document.getElementById('trendsHtml').innerHTML    = report.trends;
+      document.getElementById('severeHtml').innerHTML    = report.severe;
+      document.getElementById('radarHtml').innerHTML     = report.radar;
+      document.getElementById('lightningHtml').innerHTML = report.lightning;
+      document.getElementById('alertsHtml').innerHTML    = report.alerts;
+      document.getElementById('airHtml').innerHTML       = report.air;
+      document.getElementById('localHtml').innerHTML     = report.local;
+      document.getElementById('riversHtml').innerHTML    = report.rivers;
+      document.getElementById('recordsHtml').innerHTML   = report.records;
+      document.getElementById('astroHtml').innerHTML     = report.astro;
+      document.getElementById('bottomHtml').innerHTML    = report.bottom;
+      const afd = document.getElementById('afdLink');
+      if (afd && report.afdLink) afd.href = report.afdLink;
     }
+
+    // One-time cache buster to avoid stale 301 redirects
+    (function oneTimeCacheBuster(){
+      try {
+        if (!sessionStorage.getItem('rw_cache_buster_done') &&
+            window.location.search === '' &&
+            !window.location.hash) {
+          sessionStorage.setItem('rw_cache_buster_done', '1');
+          var sep = window.location.href.indexOf('?') === -1 ? '?' : '&';
+          window.location.replace(window.location.href + sep + 'v=' + Date.now());
+        }
+      } catch(e) {
+        // fail silently if storage blocked
+      }
+    })();
   </script>
 </body>
 </html>
