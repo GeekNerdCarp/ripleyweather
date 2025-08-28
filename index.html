@@ -25,6 +25,20 @@
     box-shadow:inset 0 0 0 3px #013e6b,inset 0 0 10px rgba(255,255,255,.15);
     display:grid;place-items:center;color:#ffff9e}
 
+  .controls{display:flex;align-items:center;gap:12px}
+  .refreshBtn{
+    background:linear-gradient(to bottom,#0077b8,#005a8d);
+    border:2px solid #004c80;
+    color:#fffbd1;
+    font-weight:bold;
+    padding:6px 12px;
+    border-radius:4px;
+    cursor:pointer;
+    box-shadow:2px 2px 0 #001326;
+  }
+  .refreshBtn:hover{background:linear-gradient(to bottom,#0092e0,#0066aa)}
+  .autoInfo{font-size:.9rem; color:#eaf5ff; opacity:.9}
+
   .wrap{display:flex;gap:16px;width:100%;padding-top:68px;flex:1}
 
   nav.toc{width:260px;min-width:240px;position:sticky;top:74px;height:calc(100vh - 78px);overflow:auto;padding:10px 12px 18px;
@@ -61,7 +75,11 @@
       <div class="logo"><strong>WX</strong></div>
       <div>Ripley Weather • <span style="opacity:.85;">Local on the ~8s</span></div>
     </div>
-    <div id="runStamp" class="muted">Loading…</div>
+    <div class="controls">
+      <div id="runStamp" class="muted">Loading…</div>
+      <span id="autoInfo" class="autoInfo">Auto: —</span>
+      <button class="refreshBtn" onclick="reloadReport()">🔄 Refresh</button>
+    </div>
   </header>
 
   <div class="wrap">
@@ -124,23 +142,38 @@
       <li>⚡ LightningMaps.org — Real-time Lightning</li>
       <li>🚀 NASA / Heavens Above — ISS & Astronomy Events</li>
     </ul>
+    <p id="lastUpdated" style="margin-top:1rem; font-style:italic;"></p>
   </footer>
 
   <script>
     const EXEC_URL = 'https://script.google.com/macros/s/AKfycbxEHXreFLXPTRzpnbU4Zzhz09iLXD9TyzxSyeTFfz6vzXLXzJdHcisLpHEHKH3U35K36w/exec';
+    const AUTO_MINUTES = 5; // ← adjust cadence here
+    let autoTimer = null, tickTimer = null, nextAt = 0, paused = false;
 
-    (function loadJSONP() {
+    function loadJSONP() {
       const s = document.createElement('script');
       const ts = Date.now();
       s.src = `${EXEC_URL}?format=jsonp&callback=renderReport&t=${ts}`;
       s.defer = true;
       document.head.appendChild(s);
-    })();
+    }
+
+    function clearSectionsForRefresh(msg="Refreshing…") {
+      const ids = ['quickHtml','cardsHtml','sevenHtml','plannerHtml','trendsHtml','severeHtml','radarHtml','lightningHtml','alertsHtml','airHtml','localHtml','riversHtml','recordsHtml','astroHtml','bottomHtml'];
+      ids.forEach(id => { const el = document.getElementById(id); if (el) el.textContent = msg; });
+    }
+
+    function reloadReport() {
+      clearSectionsForRefresh();
+      loadJSONP();
+      scheduleAuto(); // also reset the auto cycle and countdown
+    }
 
     function renderReport(report) {
       document.title = report.meta.runTitle || 'Ripley Weather • Dashboard';
       document.getElementById('runTitle').textContent = report.meta.runTitle || 'Ripley Weather';
       document.getElementById('runStamp').textContent = `${report.meta.runTime} • #${report.meta.totalToday}`;
+
       document.getElementById('quickHtml').innerHTML     = report.quick;
       document.getElementById('cardsHtml').innerHTML     = report.cards;
       document.getElementById('sevenHtml').innerHTML     = report.sevenDay;
@@ -156,9 +189,46 @@
       document.getElementById('recordsHtml').innerHTML   = report.records;
       document.getElementById('astroHtml').innerHTML     = report.astro;
       document.getElementById('bottomHtml').innerHTML    = report.bottom;
+
       const afd = document.getElementById('afdLink');
       if (afd && report.afdLink) afd.href = report.afdLink;
+
+      document.getElementById('lastUpdated').textContent =
+        `Last updated: ${new Date().toLocaleString('en-US', { timeZone: 'America/New_York' })} (auto-refresh every ${AUTO_MINUTES} min)`;
     }
+
+    // Auto-refresh machinery with countdown and page-visibility pause
+    function scheduleAuto() {
+      clearInterval(autoTimer);
+      clearInterval(tickTimer);
+      nextAt = Date.now() + AUTO_MINUTES*60*1000;
+      updateAutoInfo();
+
+      autoTimer = setInterval(() => {
+        if (!paused) reloadReport();
+      }, AUTO_MINUTES*60*1000);
+
+      tickTimer = setInterval(updateAutoInfo, 1000);
+    }
+
+    function updateAutoInfo() {
+      const el = document.getElementById('autoInfo');
+      if (!el) return;
+      if (paused) { el.textContent = 'Auto: paused (tab hidden)'; return; }
+      const ms = Math.max(0, nextAt - Date.now());
+      const s = Math.ceil(ms/1000);
+      const mm = Math.floor(s/60), ss = String(s%60).padStart(2,'0');
+      el.textContent = `Auto: ${mm}:${ss}`;
+    }
+
+    document.addEventListener('visibilitychange', () => {
+      paused = document.hidden;
+      updateAutoInfo();
+    });
+
+    // Initial load
+    loadJSONP();
+    scheduleAuto();
   </script>
 </body>
 </html>
