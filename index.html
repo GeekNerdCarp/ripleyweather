@@ -8,24 +8,25 @@
 <style>
   /* =========
    * THEME VARIABLES
-   * Default = NWS (Blue/Red). Other themes override these on body.theme-*
+   * Default = NWS (Blue/Red). Other themes override on body.theme-*
    * ========= */
   :root{
-    --navy:#003366;          /* primary header/nav blue */
-    --royal:#1d4e89;         /* secondary royal blue */
-    --accent:#C4002F;        /* red accent (sparingly) */
-    --panel:#ffffff;         /* card background */
-    --bg:#f3f6fb;            /* page background */
-    --text:#0f172a;          /* near-black text */
-    --muted:#5a6b82;         /* muted text */
-    --link:#1d4e89;          /* links */
-    --link-hover:#0c3a6b;
-    --border:#d7dce6;        /* light border */
+    --navy:#003366; --royal:#1d4e89; --accent:#C4002F;
+    --panel:#ffffff; --bg:#f3f6fb; --text:#0f172a; --muted:#5a6b82;
+    --link:#1d4e89; --link-hover:#0c3a6b; --border:#d7dce6;
     --shadow:0 6px 18px rgba(0, 0, 0, .06);
-    --chip-bg:#eaf1fb;
-    --chip-text:#0c3a6b;
-    --bar-top:#114b8f;       /* section bar gradient top */
-    --bar-bot:#0f417b;       /* section bar gradient bottom */
+    --chip-bg:#eaf1fb; --chip-text:#0c3a6b;
+    --bar-top:#114b8f; --bar-bot:#0f417b;
+  }
+
+  /* NOAA Classic (requested) — deeper steel blues + light slate */
+  body.theme-noaa{
+    --navy:#002a4a; --royal:#315a87; --accent:#b6002a;
+    --panel:#ffffff; --bg:#eef3f9; --text:#0a1424; --muted:#52637a;
+    --link:#174a82; --link-hover:#0f345b; --border:#cfd8e6;
+    --shadow:0 6px 18px rgba(0, 24, 48, .10);
+    --chip-bg:#e6eef8; --chip-text:#0f345b;
+    --bar-top:#1a4f80; --bar-bot:#143e66;
   }
 
   /* Retro 90s Weather Channel */
@@ -48,7 +49,17 @@
     --bar-top:#173a73; --bar-bot:#112c56;
   }
 
-  /* High Contrast (accessibility) */
+  /* Severe Mode (auto when alerts active, or manual) */
+  body.theme-severe{
+    --navy:#3b0a0a; --royal:#6b1111; --accent:#ffb703;
+    --panel:#fff9f2; --bg:#fff3e0;
+    --text:#1f0c00; --muted:#7a5130; --link:#9a2400; --link-hover:#6e1800;
+    --border:#ffc98a; --shadow:0 10px 24px rgba(120,50,0,.25);
+    --chip-bg:#ffe6c2; --chip-text:#7a3d00;
+    --bar-top:#a31200; --bar-bot:#7e0e00;
+  }
+
+  /* High Contrast */
   body.theme-contrast{
     --navy:#14213d; --royal:#1f2b50; --accent:#fca311;
     --panel:#ffffff; --bg:#f8fafc;
@@ -58,19 +69,14 @@
     --bar-top:#0b53bf; --bar-bot:#0a48a5;
   }
 
-  /* =========
-   * BASE LAYOUT / COMPONENTS — all colors read from variables above
-   * ========= */
   *{box-sizing:border-box}
   html,body{height:100%}
   body{
     margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;
-    color:var(--text);
-    background:var(--bg);
+    color:var(--text); background:var(--bg);
     display:flex; flex-direction:column; min-height:100vh;
   }
 
-  /* Masthead */
   header.mast{
     position:sticky; top:0; z-index:50;
     background:linear-gradient(180deg, var(--navy), #022a56);
@@ -78,14 +84,12 @@
   }
   .mast-inner{display:flex; align-items:center; justify-content:space-between; gap:16px; max-width:1200px; margin:0 auto}
   .brand{display:flex; align-items:center; gap:12px}
-  .logo{
-    width:36px; height:36px; border-radius:6px; display:grid; place-items:center;
-    background:#0e3e78; color:#fff; font-weight:800; box-shadow:inset 0 0 0 2px rgba(255,255,255,.15);
-  }
+  .logo{width:36px; height:36px; border-radius:6px; display:grid; place-items:center;
+        background:#0e3e78; color:#fff; font-weight:800; box-shadow:inset 0 0 0 2px rgba(255,255,255,.15)}
   .brand h1{margin:0; font-size:1.05rem; letter-spacing:.2px; font-weight:800}
   .brand small{opacity:.9; font-weight:600}
 
-  .controls{display:flex; align-items:center; gap:10px; color:#e6eef9}
+  .controls{display:flex; align-items:center; gap:10px; color:#e6eef9; flex-wrap:wrap}
   .stamp{font-size:.9rem; opacity:.9}
   .btn{
     background:#ffffff; color:var(--navy);
@@ -107,11 +111,15 @@
     color:#fff; border-color:#77c3ff;
   }
 
-  /* Layout */
+  .toggle{display:inline-flex; align-items:center; gap:6px; font-weight:700}
+  .toggle input{width:42px; height:24px; appearance:none; -webkit-appearance:none; background:#ccc; border-radius:999px; position:relative; outline:none; cursor:pointer; border:2px solid var(--accent)}
+  .toggle input:checked{background:#ffd9a6}
+  .toggle input::after{content:""; position:absolute; top:2px; left:2px; width:18px; height:18px; background:#fff; border-radius:50%; transition:all .15s ease}
+  .toggle input:checked::after{left:20px}
+
   .wrap{display:grid; grid-template-columns:260px 1fr; gap:18px; width:100%; max-width:1200px; margin:16px auto; padding:0 16px}
   @media (max-width: 1100px){ .wrap{grid-template-columns:1fr} nav.toc{position:relative; top:auto} }
 
-  /* TOC / Navigation */
   nav.toc{
     position:sticky; top:76px; align-self:start;
     background:#0e2f5a; color:#eaf1fb; border:1px solid #0b294f; border-radius:10px; padding:10px;
@@ -130,30 +138,23 @@
   .toc a:hover{background:#1b4b8a}
   body.theme-contrast .toc a{ color:#0b0b0b; background:#f7faff; border-color:#dfe8fb }
   body.theme-contrast .toc a:hover{ background:#eaf2ff }
-
   .toc .group{ margin:8px 0; border-left:3px solid var(--accent); padding-left:6px; }
 
-  /* Cards / Sections */
   main.content{min-width:0}
   section.card{
     background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:14px 16px; margin-bottom:14px;
     box-shadow:var(--shadow);
   }
-  body.theme-retro section.card{ background:var(--panel); border-color:#005d99 }
-  body.theme-retro main.content h2{ color:#fffd74 }
-
   .bar{
     display:flex; align-items:center; gap:10px; margin:-14px -16px 12px; padding:10px 14px; border-radius:12px 12px 0 0;
     background:linear-gradient(180deg, var(--bar-top), var(--bar-bot)); color:#fff; border-bottom:3px solid var(--accent); font-weight:800; letter-spacing:.2px;
   }
 
-  /* Tables & text */
   table{width:100%; border-collapse:collapse; background:#fff; border:1px solid var(--border); border-radius:8px; overflow:hidden}
   thead th{background:#0f417b; color:#fff; padding:10px; text-align:left; font-weight:800; font-size:.92rem}
   body.theme-retro thead th{ background:#005a8d }
   body.theme-night thead th{ background:#173a73 }
   body.theme-contrast thead th{ background:#0b53bf }
-
   td{padding:10px; border-top:1px solid var(--border)}
   tr:nth-child(even) td{background:#f8fbff}
   body.theme-retro tr:nth-child(even) td{ background:#001e38 }
@@ -162,13 +163,14 @@
   a{color:var(--link); text-decoration:none}
   a:hover{color:var(--link-hover); text-decoration:underline}
 
-  /* Chips for small values */
-  .chips{display:flex; flex-wrap:wrap; gap:8px; margin:6px 0 2px}
-  .chip{background:var(--chip-bg); color:var(--chip-text); padding:4px 8px; border-radius:999px; border:1px solid #d1e3fb; font-size:.9rem; font-weight:700}
-
-  /* Slightly larger spacing for Quick Look / Key Items */
   #quickHtml ul, #cardsHtml ul{display:grid; gap:8px; margin:0; padding-left:1.1rem}
   #quickHtml li, #cardsHtml li{line-height:1.5}
+
+  .banner{
+    display:none; margin:8px 0; padding:10px 12px; border-radius:8px; font-weight:800;
+    background:#fff3e0; color:#7a3d00; border:2px solid #ffb703;
+  }
+  body.theme-severe .banner{ display:block; }
 
   footer{
     max-width:1200px; margin:24px auto 28px; padding:16px; color:var(--muted); font-size:.9rem;
@@ -186,10 +188,16 @@
         <h1>Ripley Weather <small>• Local Outlook</small></h1>
       </div>
       <div class="controls">
+        <label class="toggle" title="Automatically switch to Severe Mode when alerts are active">
+          <input type="checkbox" id="autoSevere" checked>
+          Auto-Severe
+        </label>
         <select id="themeSelect" class="select" title="Choose theme">
           <option value="nws">NWS (Blue/Red)</option>
+          <option value="noaa">NOAA Classic</option>
           <option value="retro">Retro 90s</option>
           <option value="night">Night Sky</option>
+          <option value="severe">Severe Mode</option>
           <option value="contrast">High Contrast</option>
         </select>
         <button id="refreshBtn" class="btn" title="Fetch fresh data">↻ Refresh</button>
@@ -234,6 +242,8 @@
     </nav>
 
     <main class="content">
+      <div id="sevBanner" class="banner">⚠️ Severe Mode is active due to current alerts for the area.</div>
+
       <h2 id="runTitle" style="margin:0 0 8px; font-size:1.35rem; color:var(--navy)">Ripley Weather</h2>
 
       <section id="quick" class="card">
@@ -320,7 +330,7 @@
   </div>
 
   <footer>
-    <p><strong>Created by Matthew Carpenter</strong> — 
+    <p><strong>Created by Matthew Carpenter</strong> —
       <a href="mailto:matthew@carpsemail.com" style="color:var(--link); text-decoration:underline">
         matthew@carpsemail.com
       </a>
@@ -337,35 +347,45 @@
   </footer>
 
   <script>
-    // Your deployed Apps Script Web App URL:
     const EXEC_URL = 'https://script.google.com/macros/s/AKfycbxEHXreFLXPTRzpnbU4Zzhz09iLXD9TyzxSyeTFfz6vzXLXzJdHcisLpHEHKH3U35K36w/exec';
 
-    // THEME: load/store selection
+    // Theme handling
     const THEME_KEY = 'rw-theme';
-    function applyTheme(theme){
-      document.body.classList.remove('theme-retro','theme-night','theme-contrast');
+    const AUTO_SEV_KEY = 'rw-auto-severe';
+    const themeSelect = document.getElementById('themeSelect');
+    const autoSevereEl = document.getElementById('autoSevere');
+    const sevBanner = document.getElementById('sevBanner');
+
+    function setThemeClass(theme){
+      document.body.classList.remove('theme-retro','theme-night','theme-contrast','theme-noaa','theme-severe');
       if (theme === 'retro') document.body.classList.add('theme-retro');
       else if (theme === 'night') document.body.classList.add('theme-night');
       else if (theme === 'contrast') document.body.classList.add('theme-contrast');
-      // default (NWS) uses base variables, no class needed
+      else if (theme === 'noaa') document.body.classList.add('theme-noaa');
+      else if (theme === 'severe') document.body.classList.add('theme-severe');
+      // default (NWS) has no class
     }
+
     function initTheme(){
       const saved = localStorage.getItem(THEME_KEY) || 'nws';
-      const sel = document.getElementById('themeSelect');
-      sel.value = saved;
-      applyTheme(saved);
-      sel.addEventListener('change', () => {
-        const val = sel.value;
+      const auto = (localStorage.getItem(AUTO_SEV_KEY) ?? '1') === '1';
+      themeSelect.value = saved;
+      autoSevereEl.checked = auto;
+      setThemeClass(saved);
+      themeSelect.addEventListener('change', () => {
+        const val = themeSelect.value;
         localStorage.setItem(THEME_KEY, val);
-        applyTheme(val);
+        setThemeClass(val);
+      });
+      autoSevereEl.addEventListener('change', () => {
+        localStorage.setItem(AUTO_SEV_KEY, autoSevereEl.checked ? '1' : '0');
       });
     }
 
-    // Remove previous JSONP script tags to avoid stacking
+    // JSONP loader
     function removeOldJsonp_() {
       document.querySelectorAll('script[data-jsonp="1"]').forEach(s => s.remove());
     }
-
     function loadJSONP(force = false) {
       removeOldJsonp_();
       const s = document.createElement('script');
@@ -387,7 +407,7 @@
     function renderReport(report) {
       document.title = report.meta.runTitle || 'Ripley Weather • Dashboard';
       document.getElementById('runTitle').textContent = report.meta.runTitle || 'Ripley Weather';
-      document.getElementById('runStamp').textContent = `${report.meta.runTime} • #${report.meta.totalToday}`;
+      document.getElementById('runStamp').textContent = report.meta.runTime;
 
       document.getElementById('quickHtml').innerHTML     = report.quick;
       document.getElementById('cardsHtml').innerHTML     = report.cards;
@@ -405,14 +425,34 @@
       document.getElementById('astroHtml').innerHTML     = report.astro;
       document.getElementById('bottomHtml').innerHTML    = report.bottom;
 
+      // AFD link
       const afd = document.getElementById('afdLink');
       if (afd && report.afdLink) afd.href = report.afdLink;
+
+      // Auto-Severe behavior
+      const auto = (localStorage.getItem(AUTO_SEV_KEY) ?? '1') === '1';
+      const currentTheme = themeSelect.value;
+      if (auto && report.meta && report.meta.severeActive) {
+        sevBanner.style.display = 'block';
+        if (currentTheme !== 'severe') {
+          themeSelect.value = 'severe';
+          setThemeClass('severe');
+        }
+      } else {
+        sevBanner.style.display = 'none';
+        // If we auto-switched earlier, revert to saved preference
+        if (currentTheme === 'severe' && auto) {
+          const saved = localStorage.getItem(THEME_KEY) || 'nws';
+          themeSelect.value = saved;
+          setThemeClass(saved);
+        }
+      }
 
       btn.disabled = false;
       btn.textContent = '↻ Refresh';
     }
 
-    // Initial theme + data
+    // Init + first load
     initTheme();
     loadJSONP(false);
   </script>
