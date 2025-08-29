@@ -1,40 +1,69 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>RipleyWeather.us Debug Page</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<style>
-  body {
-    font-family: monospace, monospace;
-    background: #111;
-    color: #0f0;
-    margin: 0;
-    padding: 2rem;
-  }
-  h1 { color: #6f6; }
-  .box {
-    border: 2px dashed #0f0;
-    padding: 1rem;
-    margin: 2rem 0;
-    background: #000;
-  }
-</style>
+  <meta charset="utf-8">
+  <title>RipleyWeather.us Debug Page</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      background: #0c0c0c;
+      color: #00ff66;
+      font-family: monospace;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      color: #00ff66;
+      border-bottom: 2px dashed #00ff66;
+      padding-bottom: 10px;
+    }
+    pre {
+      background: #111;
+      border: 1px solid #333;
+      padding: 12px;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .meta {
+      margin-bottom: 1em;
+    }
+  </style>
 </head>
 <body>
-  <h1>✅ RipleyWeather.us Debug Page</h1>
-  <p>This page is served directly from <strong>GitHub Pages</strong>. If you can see this, DNS + Pages are working properly.</p>
-
-  <div class="box">
+  <h1>🌐 RipleyWeather.us Debug Page</h1>
+  <div class="meta">
     <p><strong>Timestamp:</strong> <span id="ts"></span></p>
     <p><strong>Page URL:</strong> <span id="url"></span></p>
     <p><strong>User Agent:</strong> <span id="ua"></span></p>
   </div>
 
+  <h2>Raw Report Payload</h2>
+  <pre id="output">Loading…</pre>
+
   <script>
+    // Fill metadata
     document.getElementById("ts").textContent = new Date().toString();
     document.getElementById("url").textContent = window.location.href;
     document.getElementById("ua").textContent = navigator.userAgent;
+
+    // Google Apps Script Exec URL (your stable one)
+    const EXEC_URL = "https://script.google.com/macros/s/AKfycbxEHXreFLXPTRzpnbU4Zzhz09iLXD9TyzxSyeTFfz6vzXLXzJdHcisLpHEHKH3U35K36w/exec";
+
+    // JSONP loader
+    function loadJSONP() {
+      const s = document.createElement("script");
+      s.src = EXEC_URL + "?format=jsonp&callback=renderReport&t=" + Date.now();
+      document.body.appendChild(s);
+    }
+
+    // Callback that Apps Script responds to
+    function renderReport(report) {
+      document.getElementById("output").textContent =
+        JSON.stringify(report, null, 2);
+    }
+
+    loadJSONP();
   </script>
 </body>
 </html>
