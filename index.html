@@ -1,544 +1,152 @@
-/** Ripley, OH Weather Web App
- * Sources:
- *   - Open-Meteo (primary hourly/current + astronomy)
- *   - NWS ILN Gridpoints (7-day highs/lows/summary)
- * AFD policy: external link only (no fetch)
- * Last updated: 2025-08-27 (Option 3)
- */
-
-const RW = {
-  TZ:  'America/New_York',
-  LAT: 38.7456,
-  LON: -83.8449
-};
-
-function doGet() {
-  const report = buildReport_();
-  const t = HtmlService.createTemplateFromFile('Index'); // Index.html
-  t.report = report;
-  return t
-    .evaluate()
-    .setTitle('Current Ripley, OH Weather Outlook')
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
-}
-
-/* =========================== CORE BUILDER =========================== */
-
-function buildReport_() {
-  const now = new Date();
-  const tzAbbr = tzAbbrev_(now, RW.TZ);
-  const runTime = Utilities.formatDate(now, RW.TZ, 'EEE, MMM d, yyyy • h:mm a') + ' ' + tzAbbr;
-  const totalToday = bumpDailyCounter_();
-
-  // Fetch data
-  const om       = fetchOpenMeteo_();         // primary: current/hourly/daily base + astronomy fallback
-  const sevenNws = getSevenDayNws_();         // NWS 7-day (preferred for hi/lo/text)
-  const astro    = fetchAstronomy_();         // sunrise/sunset & moon (OM → local fallback)
-
-  // Derive sections
-  const current = deriveCurrent_(om);                 // current conditions
-  const seven   = (sevenNws && sevenNws.length)
-                    ? sevenNws
-                    : makeSevenDayFromOM_(om);        // fallback if NWS fails
-  const planner = makePlanner_(om);                   // 24-hr planner list
-  const trends  = makeTrends_(om);                    // pressure/temp trend
-
-  return {
-    meta: {
-      runTitle: `Current Ripley, OH Weather Outlook (${runTime})`,
-      runTime,
-      totalToday
-    },
-
-    // HTML snippets (rendered in Index.html)
-    quick: htmlQuick_(current, astro, seven),
-    cards: htmlCards_(current),
-
-    // AFD is link-only (no text embedded)
-    afdLink: 'https://forecast.weather.gov/product.php?site=ILN&issuedby=ILN&product=AFD&format=TXT&version=1&glossary=0',
-
-    sevenDay: htmlSeven_(seven),     // NWS-first 7-day table
-    hourly: htmlPlanner_(planner),   // plain list (no bars/lines)
-    trends: htmlTrends_(trends),
-
-    severe: htmlSevereStub_(),
-    radar: htmlRadar_(),
-    lightning: htmlLightning_(),
-    alerts: htmlAlertsStub_(),
-    air: htmlAirStub_(),
-    local: htmlLocalStub_(),
-    rivers: htmlRiversStub_(),
-    records: htmlRecordsStub_(),
-    astro: htmlAstronomy_(astro),
-
-    bottom: htmlBottom_(current, seven)
-  };
-}
-
-/* =========================== FETCHERS =========================== */
-
-function fetchOpenMeteo_() {
-  const base='https://api.open-meteo.com/v1/forecast';
-  const url = `${base}?latitude=${RW.LAT}&longitude=${RW.LON}`
-    + `&daily=temperature_2m_max,temperature_2m_min,sunrise,sunset,daylight_duration`
-    + `&hourly=time,temperature_2m,relative_humidity_2m,dew_point_2m,precipitation_probability,`
-    + `precipitation,wind_speed_10m,wind_direction_10m,wind_gusts_10m,cloud_cover,surface_pressure`
-    + `&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,`
-    + `wind_speed_10m,wind_gusts_10m,weather_code,cloud_cover,surface_pressure,dew_point_2m`
-    + `&timezone=${encodeURIComponent(RW.TZ)}&wind_speed_unit=mph&temperature_unit=fahrenheit&precipitation_unit=inch`;
-  try{
-    const r = UrlFetchApp.fetch(url, {muteHttpExceptions:true});
-    if(r.getResponseCode()>=200 && r.getResponseCode()<300){
-      return JSON.parse(r.getContentText());
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title><?= report.meta.runTitle ?></title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root{
+      --bg:#0b1220;--card:#1b2433;--text:#e6eefc;--muted:#aab8d0;--line:#2b364c;
+      --accent:#3a82f7;--accent2:#69a6ff;
     }
-  }catch(e){ console.error('OpenMeteo:', e); }
-  return null;
-}
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;display:flex;min-height:100vh;background:var(--bg);color:var(--text);
+      font-family:system-ui,-apple-system,"Segoe UI",Inter,Roboto,Arial,sans-serif}
+    nav{width:240px;background:#111827;border-right:1px solid var(--line);padding:16px 14px;
+      position:sticky;top:0;height:100vh;overflow-y:auto}
+    nav h2{font-size:.9rem;letter-spacing:.08em;color:var(--accent2);margin:18px 8px 8px}
+    nav a{display:block;padding:6px 8px;border-radius:8px;color:var(--text);text-decoration:none;font-size:.92rem}
+    nav a:hover{background:#0f172a;color:var(--accent)}
+    main{flex:1;padding:18px 24px}
+    h1{margin:0 0 4px;color:var(--accent);font-size:1.6rem}
+    .timestamp{color:var(--muted);font-size:.95rem;margin-bottom:12px}
+    section{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px 16px;
+      margin:12px 0 18px;box-shadow:0 6px 16px rgba(0,0,0,.25)}
+    section h2{margin:0 0 10px;font-size:1.15rem;color:var(--accent2);display:flex;align-items:center;gap:8px}
+    ul{margin:8px 0 0 22px}
+    .note{color:var(--muted);font-size:.92rem}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:10px;border-bottom:1px solid var(--line);text-align:left}
+    thead th{color:var(--muted);font-weight:600}
+    a{color:var(--accent2)} a.link:hover{color:var(--accent);text-decoration:underline}
+  </style>
+</head>
+<body>
+  <nav>
+    <h2>FORECAST</h2>
+    <a href="#quick">🔎 Quick Look</a>
+    <a href="#cards">📋 Key Cards</a>
+    <a href="#afd">📝 AFD (External)</a>
+    <a href="#seven">📆 7-Day</a>
+    <a href="#dayplanner">🕒 24-Hour Planner</a>
 
-/** NWS 7-day (gridpoints/forecast). Array of {dow, hi, lo, text}. */
-function getSevenDayNws_() {
-  try{
-    // Gridpoint near Ripley; adjust indices if you want to micro-tune the point.
-    const url = 'https://api.weather.gov/gridpoints/ILN/73,53/forecast';
-    const r = UrlFetchApp.fetch(url, {
-      muteHttpExceptions:true,
-      headers:{'User-Agent':'RipleyWeatherAppsScript/1.0'}
-    }); 
-    if (r.getResponseCode()>=200 && r.getResponseCode()<300) {
-      const j = JSON.parse(r.getContentText());
-      const periods = (j && j.properties && j.properties.periods) ? j.properties.periods : [];
-      if (!periods.length) return [];
-      const out = [];
-      // Pair daytime & nighttime into a single row per day
-      for (let i=0; i<periods.length && out.length<7; i+=2) {
-        const day = periods[i];
-        const night = periods[i+1] || {};
-        const dowLong = (day && day.name) ? String(day.name).replace(/\s+.*/,'') : '';
-        const dow = (dowLong || '').substr(0,3);
-        const hi = (day && day.temperature != null) ? day.temperature : '—';
-        const lo = (night && night.temperature != null) ? night.temperature : '—';
-        const txt = (day && day.shortForecast) ? day.shortForecast : '—';
-        out.push({dow, hi, lo, text: txt});
-      }
-      return out;
-    }
-  }catch(e){ console.error('NWS 7-day:', e); }
-  return [];
-}
+    <h2>DIAGNOSTICS</h2>
+    <a href="#trends">📈 Trends & Diagnostics</a>
+    <a href="#severe">⛈ Severe Weather</a>
+    <a href="#radar">🛰 Radar & Satellite</a>
+    <a href="#lightning">⚡ Lightning</a>
 
-/* =========================== DERIVERS =========================== */
+    <h2>IMPACTS</h2>
+    <a href="#alerts">⚠️ Alerts</a>
+    <a href="#health">🌬 Air & Health</a>
+    <a href="#local">🏫 Local Impacts</a>
+    <a href="#rivers">🌊 Rivers & Streams</a>
 
-function deriveCurrent_(om){
-  const cur = om?.current || {};
-  const hourly = om?.hourly || {};
-  const daily  = om?.daily  || {};
-  const hiToday = getSafe_(daily.temperature_2m_max, 0, null);
-  const loToday = getSafe_(daily.temperature_2m_min, 0, null);
+    <h2>CLIMATE & SKY</h2>
+    <a href="#records">📊 Climatology</a>
+    <a href="#astro">🌌 Astronomy</a>
 
-  return {
-    cond: describeWmo_(cur.weather_code, cur.is_day),
-    tempF: num_(cur.temperature_2m, 64),
-    feelsF: num_(cur.apparent_temperature, num_(cur.temperature_2m, 64)),
-    humidity: num_(cur.relative_humidity_2m, 70),
-    dewF: num_(cur.dew_point_2m, 55),
-    wind: num_(cur.wind_speed_10m, 0),
-    gust: num_(cur.wind_gusts_10m, 0),
-    clouds: nearestVal_(hourly.time, hourly.cloud_cover, new Date(), 0),
-    pressInHg: round2_(num_(cur.surface_pressure, 1016) * 0.02953),
-    hiToday: isFinite(hiToday) ? Math.round(hiToday) : null,
-    loToday: isFinite(loToday) ? Math.round(loToday) : null
-  };
-}
+    <h2>SUMMARY</h2>
+    <a href="#bottom">✅ Bottom Line</a>
+  </nav>
 
-/** OM fallback 7-day if NWS not available */
-function makeSevenDayFromOM_(om){
-  const out=[];
-  const tz = RW.TZ;
-  const d = om?.daily;
-  if (!d?.time?.length) {
-    // Create empty rows for 7 days
-    for (let i=0;i<7;i++){
-      const base = new Date();
-      const dateObj = new Date(base.getFullYear(), base.getMonth(), base.getDate()+i);
-      out.push({dow: Utilities.formatDate(dateObj, tz, 'EEE'), hi:'—', lo:'—', text:'—'});
-    }
-    return out;
-  }
-  for (let i=0; i<Math.min(7, d.time.length); i++){
-    const dateObj = new Date(d.time[i]);
-    const hi = isFinite(d.temperature_2m_max?.[i]) ? Math.round(d.temperature_2m_max[i]) : '—';
-    const lo = isFinite(d.temperature_2m_min?.[i]) ? Math.round(d.temperature_2m_min[i]) : '—';
-    out.push({dow: Utilities.formatDate(dateObj, tz, 'EEE'), hi, lo, text:'—'});
-  }
-  return out;
-}
+  <main>
+    <h1><?= report.meta.runTitle ?></h1>
+    <p class="timestamp"><?= report.meta.runTime ?> • Report #<?= report.meta.totalToday ?></p>
 
-function makePlanner_(om){
-  const h = om?.hourly||{};
-  const now = new Date();
-  const labels = ['Late Morning','Afternoon','Evening','Overnight'];
-  const times = [
-    setHourLocal_(now, 11),
-    setHourLocal_(now, 15),
-    setHourLocal_(now, 20),
-    setHourLocal_(new Date(now.getTime()+24*3600*1000), 3)
-  ];
-  const out=[];
-  for(let i=0;i<times.length;i++){
-    const idx = nearestIndex_(h.time, times[i]);
-    const tF  = idx>=0 ? num_(h.temperature_2m?.[idx], null) : null;
-    const pop = idx>=0 ? num_(h.precipitation_probability?.[idx], 0) : 0;
-    const wind= idx>=0 ? Math.max(0, Math.round(num_(h.wind_speed_10m?.[idx],0))) : 0;
-    const gust= idx>=0 ? Math.max(0, Math.round(num_(h.wind_gusts_10m?.[idx],0))) : 0;
-    const popPct = Math.max(0, Math.min(100, Math.round(pop)));
-    out.push({
-      label: labels[i],
-      line: `${tF!=null?tF+' °F':'—'}, fair skies • POP ${popPct}% • Wind ${wind} mph${gust? ' (gust '+gust+')':''}`
-    });
-  }
-  return out;
-}
+    <section id="quick">
+      <h2>🔎 Quick Look</h2>
+      <?!= report.quick ?>
+    </section>
 
-function makeTrends_(om){
-  const h = om?.hourly||{};
-  const now = new Date();
-  return {
-    pressureTrend: pressureTrend3h_(h.time, h.surface_pressure, now),
-    tempChange24:  tempChangeHours_(h.time, h.temperature_2m, now, 24)
-  };
-}
+    <section id="cards">
+      <h2>📋 Key Cards</h2>
+      <?!= report.cards ?>
+    </section>
 
-/* =========================== HTML MAKERS =========================== */
+    <section id="afd">
+      <h2>📝 Area Forecast Discussion (External)</h2>
+      <p class="note">
+        The full AFD is available on weather.gov:
+        <a class="link" href="<?= report.afdLink ?>" target="_blank" rel="noopener">Open NWS ILN AFD</a>
+      </p>
+    </section>
 
-function htmlQuick_(cur, astro, seven){
-  // High/Low prefers NWS seven-day row 0; fallback to OM daily/calc
-  const hi = (seven?.[0]?.hi != null && seven[0].hi !== '—')
-               ? seven[0].hi + ' °F'
-               : (cur.hiToday!=null ? cur.hiToday+' °F' : '—');
-  const lo = (seven?.[0]?.lo != null && seven[0].lo !== '—')
-               ? seven[0].lo + ' °F'
-               : (cur.loToday!=null ? cur.loToday+' °F' : '—');
+    <section id="seven">
+      <h2>📆 7-Day Outlook</h2>
+      <?!= report.sevenDay ?>
+    </section>
 
-  return [
-    `<ul>`,
-    `<li style="margin-bottom:8px;">🌞 <strong>Now:</strong> ${esc_(cur.tempF)} °F, ${esc_(cur.cond)}</li>`,
-    `<li style="margin-bottom:8px;">🌡️ <strong>High/Low:</strong> ${esc_(hi)} / ${esc_(lo)}</li>`,
-    `<li style="margin-bottom:8px;">🌅 <strong>Sunrise/Sunset:</strong> ${esc_(astro.sunrise)} / ${esc_(astro.sunset)}</li>`,
-    `<li style="margin-bottom:8px;">⏱️ <strong>Daylight:</strong> ${esc_(astro.daylight)}</li>`,
-    `<li>⚠️ <strong>Hazards:</strong> None</li>`,
-    `</ul>`
-  ].join('');
-}
+    <section id="dayplanner">
+      <h2>🕒 24-Hour Planner</h2>
+      <?!= report.hourly ?>
+    </section>
 
-function htmlCards_(cur){
-  return [
-    `<ul>`,
-    `<li style="margin-bottom:8px;">🌡️ <strong>Temp:</strong> ${esc_(cur.tempF)} °F • 🧊 <strong>Feels:</strong> ${esc_(cur.feelsF)} °F • 💧 <strong>Humidity:</strong> ${esc_(cur.humidity)}%</li>`,
-    `<li style="margin-bottom:8px;">🌬️ <strong>Wind:</strong> ${esc_(cur.wind)} mph • 💨 <strong>Gust:</strong> ${esc_(cur.gust)} mph</li>`,
-    `<li style="margin-bottom:8px;">🧭 <strong>Pressure:</strong> ${esc_(cur.pressInHg.toFixed ? cur.pressInHg.toFixed(2) : cur.pressInHg)} inHg • 😮‍💨 <strong>Dew Point:</strong> ${esc_(cur.dewF)} °F</li>`,
-    `<li>☁️ <strong>Clouds:</strong> ${esc_(cur.clouds)}%</li>`,
-    `</ul>`
-  ].join('');
-}
+    <section id="trends">
+      <h2>📈 Trends & Diagnostics</h2>
+      <?!= report.trends ?>
+    </section>
 
-/** 7-day table (NWS-first rows or OM fallback rows) */
-function htmlSeven_(rows){
-  const tr = rows.map(r =>
-    `<tr><td>${esc_(r.dow)}</td><td>${esc_(r.hi)}</td><td>${esc_(r.lo)}</td><td>${esc_(r.text||'')}</td></tr>`
-  ).join('');
-  return [
-    `<table class="table7">`,
-    `<thead><tr><th>Day</th><th>High (°F)</th><th>Low (°F)</th><th>Forecast</th></tr></thead>`,
-    `<tbody>${tr}</tbody>`,
-    `</table>`
-  ].join('');
-}
+    <section id="severe">
+      <h2>⛈ Severe Weather Diagnostics</h2>
+      <?!= report.severe ?>
+    </section>
 
-/** Planner as a plain list (no bars/lines) */
-function htmlPlanner_(pl){
-  return [
-    `<ul>`,
-    pl.map(p => `<li style="margin-bottom:6px;">🌞 <strong>${esc_(p.label)}:</strong> ${esc_(p.line)}</li>`).join(''),
-    `</ul>`
-  ].join('');
-}
+    <section id="radar">
+      <h2>🛰 Radar & Satellite</h2>
+      <?!= report.radar ?>
+    </section>
 
-function htmlTrends_(t){
-  return [
-    `<ul>`,
-    `<li style="margin-bottom:6px;">🧭 <strong>Pressure:</strong> ${esc_(t.pressureTrend)}</li>`,
-    `<li>🌡️ <strong>24h Temp Change:</strong> ${esc_(t.tempChange24)} °F</li>`,
-    `</ul>`
-  ].join('');
-}
+    <section id="lightning">
+      <h2>⚡ Lightning Summary</h2>
+      <?!= report.lightning ?>
+    </section>
 
-function htmlSevereStub_(){
-  return `<p>No severe parameters flagged. CAPE/LI minimal under current high pressure.</p>`;
-}
+    <section id="alerts">
+      <h2>⚠️ Alerts & Hazards</h2>
+      <?!= report.alerts ?>
+    </section>
 
-function htmlRadar_(){
-  const iln = 'https://radar.weather.gov/radar.php?rid=iln';
-  const goes = 'https://www.star.nesdis.noaa.gov/GOES/sector.php?sat=G16&sector=se&product=geocolor';
-  return [
-    `<ul>`,
-    `<li style="margin-bottom:6px;">📡 <a class="link" href="${iln}" target="_blank" rel="noopener">NWS Wilmington (KILN) Radar</a></li>`,
-    `<li>🛰️ <a class="link" href="${goes}" target="_blank" rel="noopener">GOES-East Geocolor — SE Sector</a></li>`,
-    `</ul>`
-  ].join('');
-}
+    <section id="health">
+      <h2>🌬 Air & Health</h2>
+      <?!= report.air ?>
+    </section>
 
-function htmlLightning_(){
-  return `<p>⚡ Nearby lightning not indicated at this time. <a class="link" href="https://www.lightningmaps.org" target="_blank" rel="noopener">Live Lightning Map</a></p>`;
-}
+    <section id="local">
+      <h2>🏫 Local Impacts</h2>
+      <?!= report.local ?>
+    </section>
 
-function htmlAlertsStub_(){
-  return `<p>✅ No active watches, warnings, or advisories for Brown County (Ripley) at this time.</p>`;
-}
+    <section id="rivers">
+      <h2>🌊 Rivers & Streams</h2>
+      <?!= report.rivers ?>
+    </section>
 
-function htmlAirStub_(){
-  return `<p>🫁 Air quality generally <strong>Good</strong> this morning over the Cincinnati region.</p>`;
-}
+    <section id="records">
+      <h2>📊 Climatology & Records</h2>
+      <?!= report.records ?>
+    </section>
 
-function htmlLocalStub_(){
-  return `<p>🏟️ No significant local disruptions expected today. Morning valley fog possible in low spots along the river.</p>`;
-}
+    <section id="astro">
+      <h2>🌌 Astronomy & Skywatch</h2>
+      <?!= report.astro ?>
+    </section>
 
-function htmlRiversStub_(){
-  return `<p>🌊 Ohio River at Maysville: stage steady — no flooding concerns.</p>`;
-}
-
-function htmlRecordsStub_(){
-  return `<p>📊 Seasonal normals and records available on request; no record threats today.</p>`;
-}
-
-function htmlAstronomy_(a){
-  return [
-    `<ul>`,
-    `<li style="margin-bottom:6px;">🌙 <strong>Moon:</strong> ${esc_(a.moonPhase)}, ${a.moonIllumPct!=null? esc_(a.moonIllumPct)+'%':'—'} illuminated</li>`,
-    `<li>🌅 <strong>Moonrise:</strong> ${esc_(a.moonrise)} • 🌇 <strong>Moonset:</strong> ${esc_(a.moonset)}</li>`,
-    `</ul>`
-  ].join('');
-}
-
-function htmlBottom_(cur, seven){
-  const hi = (seven?.[0]?.hi != null && seven[0].hi !== '—')
-               ? `${seven[0].hi} °F`
-               : (cur.hiToday!=null ? `${cur.hiToday} °F` : '—');
-  const lo = (seven?.[0]?.lo != null && seven[0].lo !== '—')
-               ? `${seven[0].lo} °F`
-               : (cur.loToday!=null ? `${cur.loToday} °F` : '—');
-  return `Bright sunshine, light winds, comfortable humidity. High near ${esc_(hi)}, low near ${esc_(lo)}. Great skywatch conditions tonight.`;
-}
-
-/* =========================== UTILITIES =========================== */
-
-function num_(v, d) { return (v === null || v === undefined || isNaN(v)) ? d : Number(v); }
-function round2_(x) { return Math.round(Number(x || 0) * 100) / 100; }
-function getSafe_(arr, i, def) { return (arr && arr.length > i && arr[i] != null) ? arr[i] : def; }
-function esc_(s) {
-  return String(s == null ? '' : s).replace(/[&<>"']/g, m => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-  }[m]));
-}
-function setHourLocal_(d, h) {
-  const ds = Utilities.formatDate(d, RW.TZ, 'yyyy-MM-dd');
-  return new Date(ds + 'T' + String(h).padStart(2, '0') + ':00:00');
-}
-
-/** Robust timezone abbreviation (EDT/EST) */
-function tzAbbrev_(d, tz) {
-  try {
-    const s = d.toLocaleString('en-US', { timeZone: tz, timeZoneName: 'short' });
-    const matches = s.match(/[A-Z]{2,5}(?:-[0-9]+)?/g);
-    return matches ? matches[matches.length - 1].replace(/-.*/, '') : 'ET';
-  } catch (e) {
-    return 'ET';
-  }
-}
-
-function localClock_(iso, tz) {
-  if (!iso) return '—';
-  const d = new Date(iso);
-  return Utilities.formatDate(d, tz, 'h:mm a') + ' ' + tzAbbrev_(d, tz);
-}
-
-function nearestIndex_(isoTimes, target) {
-  if (!isoTimes || !isoTimes.length) return -1;
-  const t = target.getTime(); let best = -1, diff = 1e15;
-  for (let i = 0; i < isoTimes.length; i++) {
-    const ms = new Date(isoTimes[i]).getTime();
-    const d = Math.abs(ms - t);
-    if (d < diff) { diff = d; best = i; }
-  }
-  return best;
-}
-
-function nearestVal_(times, vals, when, def) {
-  const i = nearestIndex_(times, when);
-  if (i < 0) return def;
-  const v = vals && vals[i];
-  return (v == null || isNaN(v)) ? def : v;
-}
-
-function pressureTrend3h_(times, p, when) {
-  if (!times || !p) return 'steady';
-  const iNow = nearestIndex_(times, when);
-  const past = new Date(when.getTime() - 3 * 3600 * 1000);
-  const iPast = nearestIndex_(times, past);
-  if (iNow < 0 || iPast < 0) return 'steady';
-  const a = num_(p[iNow], null), b = num_(p[iPast], null);
-  if (a == null || b == null) return 'steady';
-  const d = a - b;
-  if (d > 1.0) return 'rising';
-  if (d < -1.0) return 'falling';
-  return 'steady';
-}
-
-function tempChangeHours_(times, temps, when, hrs) {
-  const iNow = nearestIndex_(times, when);
-  const past = new Date(when.getTime() - hrs * 3600 * 1000);
-  const iPast = nearestIndex_(times, past);
-  if (iNow < 0 || iPast < 0) return 0;
-  return Math.round(num_(temps[iNow], 0) - num_(temps[iPast], 0));
-}
-
-function describeWmo_(code, isDay) {
-  const m = {
-    0: 'clear', 1: 'mostly clear', 2: 'partly cloudy', 3: 'overcast', 45: 'fog', 48: 'rime fog',
-    51: 'drizzle', 53: 'drizzle', 55: 'drizzle', 61: 'light rain', 63: 'rain', 65: 'heavy rain',
-    71: 'light snow', 73: 'snow', 75: 'heavy snow', 80: 'showers', 81: 'showers', 82: 'heavy showers',
-    95: 'thunderstorms', 96: 'thunder w/ hail', 99: 'severe thunderstorms'
-  };
-  const base = m[code] || 'fair';
-  if (code === 0 || code === 1 || code === 2) return isDay ? base : 'clear';
-  return base;
-}
-
-/* =========================== ASTRONOMY =========================== */
-
-function fetchAstronomy_() {
-  // Try Open-Meteo Astronomy for moon data; compute Sun locally
-  try{
-    const today = Utilities.formatDate(new Date(), RW.TZ, 'yyyy-MM-dd');
-    const url = `https://api.open-meteo.com/v1/astronomy?latitude=${RW.LAT}&longitude=${RW.LON}`
-      + `&daily=moon_phase,moonrise,moonset,moon_illumination&timezone=${encodeURIComponent(RW.TZ)}`
-      + `&start_date=${today}&end_date=${today}`;
-    const r = UrlFetchApp.fetch(url, {muteHttpExceptions:true});
-    if(r.getResponseCode()>=200 && r.getResponseCode()<300){
-      const j = JSON.parse(r.getContentText());
-      const i = 0;
-      const illum = getSafe_(j.daily?.moon_illumination, i, null);
-      const phase = getSafe_(j.daily?.moon_phase, i, null);
-      const rise  = getSafe_(j.daily?.moonrise, i, null);
-      const set   = getSafe_(j.daily?.moonset,  i, null);
-      const solar = computeSunTimes_(new Date(), RW.LAT, RW.LON, RW.TZ);
-      return {
-        sunrise: solar.sunriseLocal,
-        sunset: solar.sunsetLocal,
-        daylight: solar.daylightHHMM,
-        moonIllumPct: illum!=null ? Math.round(illum) : null,
-        moonPhase: phase!=null ? moonPhaseNameFromFraction_(phase/100) : '—',
-        moonrise: rise ? localClock_(rise, RW.TZ) : '—',
-        moonset:  set  ? localClock_(set,  RW.TZ) : '—'
-      };
-    }
-  }catch(e){ console.error('OM Astronomy:', e); }
-
-  // Local fallback
-  const solar = computeSunTimes_(new Date(), RW.LAT, RW.LON, RW.TZ);
-  const moon  = computeMoonFallback_(new Date(), RW.LAT, RW.LON, RW.TZ);
-  return {
-    sunrise: solar.sunriseLocal, sunset: solar.sunsetLocal, daylight: solar.daylightHHMM,
-    moonIllumPct: moon.illumPct, moonPhase: moon.phaseName, moonrise: moon.moonrise, moonset: moon.moonset
-  };
-}
-
-function computeSunTimes_(dateUtc, lat, lon, tz) {
-  const rad = Math.PI / 180;
-  const J1970 = 2440588, J2000 = 2451545;
-  const toDays = date => (date / 86400000) + J1970 - J2000;
-  const d = new Date(Date.UTC(dateUtc.getUTCFullYear(), dateUtc.getUTCMonth(), dateUtc.getUTCDate(), 12, 0, 0));
-  const e = 23.4397 * rad;
-
-  const J = 2451545 + toDays(d);
-  const Mmean = (357.5291 + 0.98560028 * (J - 2451545)) * rad;
-  const C = (1.9148 * Math.sin(Mmean) + 0.02 * Math.sin(2 * Mmean) + 0.0003 * Math.sin(3 * Mmean)) * rad;
-  const L = (Mmean + C + 102.9372 * rad + Math.PI) % (2 * Math.PI);
-  const dec = Math.asin(Math.sin(e) * Math.sin(L));
-  const lw = -lon * rad;
-  const n = Math.round(J - 2451545 - lw / (2 * Math.PI));
-  const Jnoon = 2451545 + n + lw / (2 * Math.PI);
-  const acosArg = (Math.sin(-0.833 * rad) - Math.sin(lat * rad) * Math.sin(dec)) /
-                  (Math.cos(lat * rad) * Math.cos(dec));
-  const h = Math.acos(Math.max(-1, Math.min(1, acosArg))) / (2 * Math.PI);
-  const Jr = Jnoon - h, Js = Jnoon + h;
-
-  const toDate = jd => new Date((jd - 2440588 + 2451545) * 86400000);
-  const sr = toDate(Jr), ss = toDate(Js);
-
-  const sunriseLocal = Utilities.formatDate(sr, tz, 'h:mm a') + ' ' + tzAbbrev_(sr, tz);
-  const sunsetLocal  = Utilities.formatDate(ss, tz, 'h:mm a') + ' ' + tzAbbrev_(ss, tz);
-  const dlMs = ss - sr; const H = Math.floor(dlMs / 3600000), M = Math.round((dlMs % 3600000) / 60000);
-  return { sunriseLocal, sunsetLocal, daylightHHMM: `${H}:${String(M).padStart(2, '0')}` };
-}
-
-function computeMoonFallback_(date, lat, lon, tz) {
-  const known = Date.UTC(2000, 0, 6, 18, 14, 0);
-  const synodic = 29.530588853 * 86400000;
-  const age = ((date.getTime() - known) % synodic + synodic) % synodic;
-  const phase = age / synodic;
-  const illumPct = Math.round((1 - Math.cos(2 * Math.PI * phase)) * 50) * 2;
-
-  function altAt(d) {
-    const rad = Math.PI / 180;
-    const latr = lat * rad;
-    const dec  = 5.145 * rad * Math.sin(((d.getTime() / 86400000) % 27.32) * (2 * Math.PI / 27.32));
-    const H = ((d.getUTCHours() + d.getUTCMinutes() / 60) + lon / 15 - 12) * 15 * rad;
-    return Math.asin(Math.sin(latr) * Math.sin(dec) + Math.cos(latr) * Math.cos(dec) * Math.cos(H));
-  }
-  function findEvent(sign) {
-    const start = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0);
-    let lastA = null, lastT = null;
-    for (let h = 0; h <= 24; h++) {
-      const t = new Date(start.getTime() + h * 3600000);
-      const a = altAt(t);
-      if (lastA != null) {
-        if ((lastA < 0 && a >= 0 && sign > 0) || (lastA >= 0 && a < 0 && sign < 0)) {
-          const frac = Math.abs(lastA) / (Math.abs(lastA) + Math.abs(a));
-          const tt = new Date(lastT.getTime() + frac * 3600000);
-          return Utilities.formatDate(tt, tz, 'h:mm a') + ' ' + tzAbbrev_(tt, tz);
-        }
-      }
-      lastA = a; lastT = t;
-    }
-    return '—';
-  }
-  return { illumPct, phaseName: moonPhaseNameFromFraction_(phase), moonrise: findEvent(+1), moonset: findEvent(-1) };
-}
-
-function moonPhaseNameFromFraction_(f) {
-  if (f == null) return '—';
-  const x = Math.max(0, Math.min(1, Number(f)));
-  if (x < 0.03) return 'New Moon';
-  if (x < 0.22) return 'Waxing Crescent';
-  if (x < 0.28) return 'First Quarter';
-  if (x < 0.47) return 'Waxing Gibbous';
-  if (x < 0.53) return 'Full Moon';
-  if (x < 0.72) return 'Waning Gibbous';
-  if (x < 0.78) return 'Last Quarter';
-  if (x < 0.97) return 'Waning Crescent';
-  return 'New Moon';
-}
-
-/* =========================== DAILY COUNTER =========================== */
-
-function bumpDailyCounter_(){
-  const ps=PropertiesService.getScriptProperties();
-  const today=Utilities.formatDate(new Date(), RW.TZ, 'yyyyMMdd');
-  const k='RW_COUNT_'+today;
-  const n=(Number(ps.getProperty(k))||0)+1;
-  ps.setProperty(k,String(n));
-  const yKey='RW_COUNT_'+Utilities.formatDate(new Date(Date.now()-86400000), RW.TZ, 'yyyyMMdd');
-  if(ps.getProperty(yKey)) ps.deleteProperty(yKey);
-  return n;
-}
+    <section id="bottom">
+      <h2>✅ Bottom Line</h2>
+      <?!= report.bottom ?>
+    </section>
+  </main>
+</body>
+</html>
